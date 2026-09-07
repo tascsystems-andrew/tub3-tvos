@@ -40,6 +40,12 @@ public final class Tuner {
     /// dropped rather than played — otherwise flipping quickly through the dial lands you on
     /// channel 9 watching whatever channel 6 was about to show.
     private var tuneGeneration = 0
+    /// Set when a direct fetch has failed on this channel, so the next attempt asks Plex to
+    /// stream the same programme instead of re-requesting the URL the server just refused.
+    /// The television cannot get stuck on one file; neither should this.
+    private var avoidDirect = false
+    /// Whether the item now on screen was fetched as a file rather than streamed.
+    private var playingDirect = false
     /// Consecutive failures on the current channel, reset whenever a picture arrives.
     private var failures = 0
 
@@ -81,7 +87,12 @@ public final class Tuner {
             // switched on does not open its menu.
             // A channel named on the command line, so a fault on one channel can be
             // reproduced without someone standing at the television pressing buttons.
-            let forced = UserDefaults.standard.object(forKey: "tub3Channel") as? Int
+            // `integer(forKey:)`, not `object(forKey:) as? Int`: the argument domain stores a
+            // command-line value as a string, so the cast always failed and the flag silently
+            // did nothing — which cost a whole diagnostic run to notice.
+            let defaults = UserDefaults.standard
+            let forced = defaults.object(forKey: "tub3Channel") != nil
+                ? defaults.integer(forKey: "tub3Channel") : nil
             let first = forced ?? (channels.first { !$0.isGuide } ?? channels.first)?.channel
             if let first { await tune(to: first) }
         } catch {
@@ -93,6 +104,7 @@ public final class Tuner {
         tuneGeneration += 1
         let generation = tuneGeneration
         failures = 0
+        avoidDirect = false
         current = channel
         let station = channels.first { $0.channel == channel }?.station ?? ""
         state = .tuning(channel: channel, station: station)
@@ -170,7 +182,8 @@ public final class Tuner {
         }
         guard let resolver, let base = plexBase else { return }
         do {
-            let item = try await resolver.resolve(entry, base: base)
+            let item = try await resolver.resolve(entry, base: base,
+                                                  forceTranscode: avoidDirect)
             guard generation == tuneGeneration else {
                 // Left this channel while Plex was thinking. Give the transcoder back.
                 if let session = item.session { await plex?.stop(session: session) }
@@ -179,8 +192,8 @@ public final class Tuner {
             Diag.log("play url=\(item.url.absoluteString) joinAt=\(item.joinAt) playFor=\(item.playFor) session=\(item.session ?? "direct")")
             state = .playing(channel: now.channel, station: now.station,
                              title: entry.displayTitle, contentType: entry.contentType)
-            await engine.play(item)
-            failures = 0
+            playingDirect = item.session == nil
+            if await engine.play(item) { failures = 0 }
         } catch {
             state = .slate(channel: now.channel, station: now.station,
                            message: "cannot play this")
@@ -199,6 +212,10 @@ public final class Tuner {
             return
         }
         Diag.log("recover ch\(channel): \(why)")
+        // A failure on a direct fetch is a verdict on the route, not on the programme: the
+        // same thing is still there and Plex will stream it. Falling back beats asking again
+        // for a URL the server has already refused, which is how channel 13 stayed dead.
+        if playingDirect { avoidDirect = true }
         let station = channels.first { $0.channel == channel }?.station ?? ""
         failures += 1
         state = .slate(channel: channel, station: station, message: why)

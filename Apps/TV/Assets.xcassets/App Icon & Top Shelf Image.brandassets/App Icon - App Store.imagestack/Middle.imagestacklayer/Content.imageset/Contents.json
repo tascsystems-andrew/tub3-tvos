@@ -2,12 +2,8 @@
   "images": [
     {
       "idiom": "tv",
-      "scale": "1x"
-    },
-    {
-      "idiom": "tv",
       "filename": "middle.png",
-      "scale": "2x"
+      "scale": "1x"
     }
   ],
   "info": {

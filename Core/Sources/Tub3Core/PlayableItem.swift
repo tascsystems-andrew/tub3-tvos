@@ -41,7 +41,11 @@ public struct StreamResolver: Sendable {
         self.clientID = clientID
     }
 
-    public func resolve(_ entry: NowEntry, base: URL) async throws -> PlayableItem {
+    /// - Parameter forceTranscode: ask Plex to stream it even when the file looks playable
+    ///   as it stands. Used after a direct fetch has failed, so a channel is not left
+    ///   re-requesting a URL the server has already refused.
+    public func resolve(_ entry: NowEntry, base: URL,
+                        forceTranscode: Bool = false) async throws -> PlayableItem {
         guard let ref = entry.plex else {
             throw PlexError.unreachable("the box could not identify this file in Plex")
         }
@@ -49,14 +53,21 @@ public struct StreamResolver: Sendable {
                                        mediaIndex: ref.mediaIndex,
                                        partIndex: ref.partIndex)
 
-        switch StreamRouter.route(part) {
+        switch forceTranscode ? .hls(reason: "a direct fetch was refused") : StreamRouter.route(part) {
         case .direct(let key):
             // No handshake, no session, nothing to clean up, and the seek is exact. The
             // Part key from the metadata call is the same one a direct-play decision would
             // return, so asking for that decision would be a wasted round trip.
+            //
+            // Deliberately anonymous. Naming the client here is what broke the one channel
+            // that used this path: Plex answers /library/parts/... with 503 for this app's
+            // identifier while answering its API calls with 200 for the same identifier, and
+            // an unnamed request for the same file returns 206. Identity buys nothing on a
+            // raw file — the server grants LAN clients access without it — and evidently
+            // costs the file.
             var c = URLComponents(url: base.appendingPathComponent(String(key.dropFirst())),
                                   resolvingAgainstBaseURL: false)!
-            c.queryItems = [.init(name: "X-Plex-Client-Identifier", value: clientID)]
+            c.queryItems = nil
             return PlayableItem(url: c.url!, joinAt: entry.offsetSeconds,
                                 playFor: entry.remainingSeconds, session: nil,
                                 title: entry.displayTitle, contentType: entry.contentType)

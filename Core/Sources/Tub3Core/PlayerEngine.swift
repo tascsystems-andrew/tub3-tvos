@@ -53,7 +53,12 @@ public final class PlayerEngine {
     public func attach(plex: PlexClient) { self.plex = plex }
 
     /// Play an item, joining part-way in, and call `onBoundary` when its slot is up.
-    public func play(_ item: PlayableItem) async {
+    ///
+    /// - Returns: whether a picture actually arrived. The caller cannot tell otherwise —
+    ///   this returns either way — and treating a failed item as a success is what kept the
+    ///   retry backoff pinned at two seconds while a channel failed over and over.
+    @discardableResult
+    public func play(_ item: PlayableItem) async -> Bool {
         await stopCurrentSession()
 
         let asset = AVURLAsset(url: item.url)
@@ -76,16 +81,22 @@ public final class PlayerEngine {
         // moment it handed the URL over, so a failed item left a black screen that never
         // retried and never explained itself.
         guard await waitUntilReady(playerItem) else {
-            Diag.log("not ready: status=\(playerItem.status.rawValue) err=\(playerItem.error?.localizedDescription ?? "none")")
+            let ns = playerItem.error as NSError?
+            Diag.log("not ready: status=\(playerItem.status.rawValue) domain=\(ns?.domain ?? "-") code=\(ns?.code ?? 0) err=\(playerItem.error?.localizedDescription ?? "none")")
+            if let u = ns?.userInfo[NSUnderlyingErrorKey] as? NSError {
+                Diag.log("   underlying domain=\(u.domain) code=\(u.code) \(u.localizedDescription)")
+            }
+            await Diag.probe(item.url)
             let why = playerItem.error?.localizedDescription ?? "the stream did not start"
             onFailure?(why)
-            return
+            return false
         }
 
         Diag.log("ready, seeking to \(item.joinAt)")
         await correctJoinIfNeeded(playerItem, wanted: item.joinAt, isTranscoded: item.session != nil)
         Diag.log("joined at \(playerItem.currentTime().seconds) rate=\(player.rate)")
         startWatchdog()
+        return true
     }
 
     /// Notices a picture that has stopped arriving.
