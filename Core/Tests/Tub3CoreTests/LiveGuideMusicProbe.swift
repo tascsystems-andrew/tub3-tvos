@@ -23,7 +23,9 @@ final class LiveGuideMusicProbe: XCTestCase {
         print("PROBE playhead:", samples.map { String(format: "%.1f", $0) }.joined(separator: " "))
         let advanced = (samples.last ?? 0) - (samples.first ?? 0)
         print(String(format: "PROBE advanced %.2f s over 7.5 s", advanced))
-        XCTAssertGreaterThan(samples.first ?? 0, 1, "did not join part-way in")
+        // At the top, like the box: it loads the playlist with `replace` and loops it, so
+        // channel 2 always opens on the first bars of the first track.
+        XCTAssertLessThan(samples.first ?? 999, 6, "did not start at the beginning")
         XCTAssertGreaterThan(advanced, 3, "the music never got going")
 
         music.stop()

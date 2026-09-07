@@ -31,32 +31,25 @@ public final class GuideMusic {
     /// Where the current track has got to, so a probe can prove it is actually moving.
     public var playhead: Double { player.currentItem?.currentTime().seconds ?? 0 }
 
-    /// Start the playlist, joined at the wall clock rather than at the beginning.
+    /// Start the playlist at the top, which is what the television does.
     ///
-    /// The box's music has been running since it booted, so arriving at channel 2 there drops
-    /// you somewhere in the middle. Starting from zero on every visit would instead play the
-    /// same opening bars every time anyone glanced at the listings, which is the one way a
-    /// three-hour loop manages to sound repetitive.
+    /// `tuner/player.py: play_loop` hands mpv the playlist with `loop-playlist inf` and loads
+    /// it with `replace`, so tuning to channel 2 on the box always begins at the first track,
+    /// and its docstring says why: "the guide's music is not on a timetable and nobody can
+    /// tune in late to it."
+    ///
+    /// An earlier version here joined at the wall clock instead, on the assumption that the
+    /// box's music had been running since it booted. It has not, and the guide track is a
+    /// three-hour compilation — so the app played the same file as the television and a
+    /// different song, every time. The assumption was never the box's; it was mine.
     public func start(_ tracks: [URL]) async {
         guard !tracks.isEmpty else { return }
         guard tracks != self.tracks || !isPlaying else { return }   // already on, leave it be
         stop()
         self.tracks = tracks
-
         enqueue(from: 0)
         player.play()
-
-        guard let item = player.currentItem else { return }
-        Diag.log("guide music \(tracks.count) track(s), first=\(tracks[0].lastPathComponent)")
-        // Duration is not known until the header has been read, so the join has to wait for
-        // it. Failing to get one is not a fault — it just means starting at the top.
-        if let seconds = try? await item.asset.load(.duration).seconds,
-           seconds.isFinite, seconds > 1 {
-            let into = Date().timeIntervalSince1970.truncatingRemainder(dividingBy: seconds)
-            await item.seek(to: CMTime(seconds: into, preferredTimescale: 600),
-                            toleranceBefore: .zero, toleranceAfter: .zero)
-            Diag.log("guide music joined at \(Int(into))s of \(Int(seconds))s")
-        }
+        Diag.log("guide music from the top: \(tracks[0].lastPathComponent) of \(tracks.count)")
     }
 
     public func stop() {
