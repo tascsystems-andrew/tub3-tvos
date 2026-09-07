@@ -22,21 +22,32 @@ public struct TunerScreen: View {
             case .guideChannel(let channel, let station):
                 GuideChannelView(guide: tuner.guide, channel: channel, station: station,
                                  startedAt: tuner.guideStartedAt)
-            case .tuning(let channel, let station):
-                SlateView(channel: channel, station: station, message: "tuning…")
-            case .playing:
+            case .tuning, .playing:
+                // The picture stays up while tuning. A television does not blank when you
+                // press a channel button — it keeps showing what it has and writes the new
+                // number over the top, which is what makes surfing feel instant even though
+                // the tuner behind it plainly is not. The box says so in its own docstring;
+                // this screen used to replace the picture with a card that said "tuning…",
+                // which is the one thing a television never does.
                 PlayerLayerView(player: tuner.player.player).ignoresSafeArea()
             }
 
             // The bug stays in the view tree and only its opacity changes. Removing it would
             // also remove it from the accessibility tree, and that tree is the only way a
             // test can read which channel is tuned.
-            if case .playing(let channel, let station, let title, _) = tuner.state {
+            switch tuner.state {
+            case .playing(let channel, let station, let title, _):
                 // Full frame: the bug places its own two blocks, top right and bottom right,
                 // because that separation is the whole design and not this screen's business.
                 ChannelBugView(channel: channel, station: station, title: title,
                                remaining: tuner.nowEntry?.remainingSeconds ?? 0)
                     .opacity(tuner.bugVisible ? 1 : 0)
+            case .tuning(let channel, let station):
+                // The same ident, with nothing under it yet — the number is the whole point
+                // of it while a thumb is still moving.
+                ChannelBugView(channel: channel, station: station)
+            default:
+                EmptyView()
             }
 
             if showingDial {

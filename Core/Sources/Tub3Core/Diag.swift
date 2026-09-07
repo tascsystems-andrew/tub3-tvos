@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// A trace you can read off a television.
 ///
@@ -8,10 +9,21 @@ import Foundation
 public enum Diag {
     public static let on = ProcessInfo.processInfo.arguments.contains("-tub3Trace")
 
+    /// Where the trace goes, and it goes to two places on purpose.
+    ///
+    /// `print` is what `devicectl ... --console` picks up, which is how this is read off a
+    /// television. The unified log is what `simctl spawn <sim> log stream` picks up, which is
+    /// how it is read out of a simulator under `xcodebuild test` — a test runner does not
+    /// capture the app's stdout, so a trace that only printed was invisible exactly where a
+    /// test could have asserted on it.
+    private static let unified = Logger(subsystem: "com.tascsystems.tub3", category: "trace")
+
     public static func log(_ message: @autoclosure () -> String) {
         guard on else { return }
-        print("TUB3 \(String(format: "%.3f", Date().timeIntervalSince1970)) \(message())")
+        let line = message()
+        print("TUB3 \(String(format: "%.3f", Date().timeIntervalSince1970)) \(line)")
         fflush(stdout)
+        unified.notice("TUB3 \(line, privacy: .public)")
     }
 
     /// Ask the network layer what it thinks of a URL that AVFoundation refused.

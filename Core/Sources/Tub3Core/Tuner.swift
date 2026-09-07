@@ -47,6 +47,7 @@ public final class Tuner {
     /// tune, as this did, left the grid frozen at the moment you arrived.
     static let guideRefresh: UInt64 = 20_000_000_000
     private var guidePoll: Task<Void, Never>?
+    private var settleTask: Task<Void, Never>?
 
     private let box: BoxClient
     private var plex: PlexClient?
@@ -102,8 +103,11 @@ public final class Tuner {
             plex = client
             resolver = StreamResolver(plex: client, clientID: clientID)
             engine.attach(plex: client)
-            // Start on the first real channel rather than the guide, the way a television
-            // switched on does not open its menu.
+            // The ambiance channel, as `tub3/app.py` does and for its reason: it is the one
+            // channel with no schedule, no catalogue and nothing to go wrong, so it is what a
+            // set should open on. Falls through to the lowest scheduled station when there is
+            // no ambiance channel, which is the box's fallback too — and never the guide,
+            // because a television switched on does not open its menu.
             // A channel named on the command line, so a fault on one channel can be
             // reproduced without someone standing at the television pressing buttons.
             // `integer(forKey:)`, not `object(forKey:) as? Int`: the argument domain stores a
@@ -112,13 +116,24 @@ public final class Tuner {
             let defaults = UserDefaults.standard
             let forced = defaults.object(forKey: "tub3Channel") != nil
                 ? defaults.integer(forKey: "tub3Channel") : nil
-            let first = forced ?? (channels.first { !$0.isGuide } ?? channels.first)?.channel
+            let first = forced ?? (channels.first { $0.isAmbiance }
+                                   ?? channels.first { !$0.isGuide }
+                                   ?? channels.first)?.channel
             if let first { await tune(to: first) }
         } catch {
             state = .broken(error.localizedDescription)
         }
     }
 
+    /// How long the dial waits for the thumb to stop before it opens anything.
+    ///
+    /// The box's own number. Eight presses up the dial should open one file, not eight: the
+    /// number on screen keeps up with the button while the tuner obviously cannot, and the
+    /// whole trick of a dial that feels fast is that the display never admits it. Without
+    /// this, surfing opened — and abandoned — a Plex session per channel passed through.
+    static let settle: Duration = .milliseconds(220)
+
+    /// A press. Announces the channel immediately and opens it once the pressing stops.
     public func tune(to channel: Int) async {
         tuneGeneration += 1
         let generation = tuneGeneration
@@ -135,10 +150,23 @@ public final class Tuner {
         }
         showBug()
         engine.standDown()
-        // Hand back the transcoder we are leaving before asking for another. Plex does not
-        // reap abandoned sessions, so surfing the dial without this buries the server.
-        await engine.stopCurrentSession()
-        await load(channel: channel, generation: generation)
+
+        settleTask?.cancel()
+        settleTask = Task { [weak self] in
+            try? await Task.sleep(for: Tuner.settle)
+            guard let self, !Task.isCancelled, generation == self.tuneGeneration else { return }
+            // Only now is this a channel change rather than a thumb in motion. Hand back the
+            // transcoder we are leaving before asking for another: Plex does not reap
+            // abandoned sessions, so surfing without this buries the server.
+            await self.engine.stopCurrentSession()
+            guard generation == self.tuneGeneration else { return }
+            await self.load(channel: channel, generation: generation)
+        }
+    }
+
+    /// Wait for any settle in flight. Tests need it; nothing in the app does.
+    public func settled() async {
+        await settleTask?.value
     }
 
     public func channelUp() async {
