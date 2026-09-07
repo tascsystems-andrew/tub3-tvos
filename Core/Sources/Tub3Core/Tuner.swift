@@ -40,6 +40,8 @@ public final class Tuner {
     /// dropped rather than played — otherwise flipping quickly through the dial lands you on
     /// channel 9 watching whatever channel 6 was about to show.
     private var tuneGeneration = 0
+    /// Consecutive failures on the current channel, reset whenever a picture arrives.
+    private var failures = 0
 
     public var player: PlayerEngine { engine }
 
@@ -49,6 +51,12 @@ public final class Tuner {
         self.clientID = clientID
         engine.onBoundary = { [weak self] in
             Task { await self?.advance() }
+        }
+        // A channel that cannot show a picture says so and tries again. The television it is
+        // imitating cannot get stuck — it opens the next file off a disk — so the app has to
+        // work at being equally hard to kill.
+        engine.onFailure = { [weak self] why in
+            Task { await self?.recover(from: why) }
         }
     }
 
@@ -76,10 +84,12 @@ public final class Tuner {
     public func tune(to channel: Int) async {
         tuneGeneration += 1
         let generation = tuneGeneration
+        failures = 0
         current = channel
         let station = channels.first { $0.channel == channel }?.station ?? ""
         state = .tuning(channel: channel, station: station)
         showBug()
+        engine.standDown()
         // Hand back the transcoder we are leaving before asking for another. Plex does not
         // reap abandoned sessions, so surfing the dial without this buries the server.
         await engine.stopCurrentSession()
@@ -124,6 +134,9 @@ public final class Tuner {
         // The guide is a channel exactly as it is on the box: tuning to it shows listings,
         // not a picture, and there is nothing to resolve.
         if now.isGuide {
+            // Nothing plays on the guide, so the previous channel has to actually stop —
+            // otherwise its audio carries on underneath the listings.
+            await engine.stop()
             state = .guideChannel(channel: now.channel, station: now.station)
             await loadGuide(generation: generation)
             return
@@ -154,11 +167,34 @@ public final class Tuner {
             state = .playing(channel: now.channel, station: now.station,
                              title: entry.displayTitle, contentType: entry.contentType)
             await engine.play(item)
+            failures = 0
         } catch {
             state = .slate(channel: now.channel, station: now.station,
                            message: "cannot play this")
             await retry(channel: now.channel, after: 8, generation: generation)
         }
+    }
+
+    /// Something went wrong with the picture. Say what, then go back to the box and ask
+    /// again — which is also how a real set-top box behaves when a stream drops.
+    private func recover(from why: String) async {
+        guard let channel = current else { return }
+        // Only a channel that believes it is showing a picture can fail to show one. A late
+        // report about somewhere we have already left is not this channel's problem.
+        guard case .playing = state else { return }
+        let station = channels.first { $0.channel == channel }?.station ?? ""
+        failures += 1
+        state = .slate(channel: channel, station: station, message: why)
+        await engine.stopCurrentSession()
+
+        // Back off a little if it keeps happening, so a channel whose content is genuinely
+        // broken does not sit in a tight retry loop hammering Plex.
+        let wait = min(2.0 * Double(failures), 15.0)
+        tuneGeneration += 1
+        let generation = tuneGeneration
+        try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+        guard generation == tuneGeneration else { return }
+        await load(channel: channel, generation: generation)
     }
 
     private func loadGuide(generation: Int) async {

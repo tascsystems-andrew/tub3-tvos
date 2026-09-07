@@ -92,3 +92,120 @@ private func clients() async throws -> (BoxClient, PlexClient, URL) {
         if let session = item.session { await plex.stop(session: session) }
     }
 }
+
+@Test(.enabled(if: live)) func theAmbianceChannelPlaysWhereTheClockSays() async throws {
+    let (box, plex, plexBase) = try await clients()
+    let state = try await box.now(channel: 13)
+    let entry = try #require(state.now, "ambiance is off air")
+
+    let resolver = StreamResolver(plex: plex, clientID: "tub3-test-0001")
+    let item = try await resolver.resolve(entry, base: plexBase)
+    print("  ambiance   \(item.title)")
+    print("  route      \(item.session == nil ? "DIRECT" : "HLS")")
+    print("  joining at \(Int(item.joinAt))s of \(Int(entry.duration))s")
+
+    let playerItem = AVPlayerItem(url: item.url)
+    let player = AVPlayer(playerItem: playerItem)
+    player.play()
+
+    var waited = 0.0
+    while playerItem.status == .unknown, waited < 30 {
+        try await Task.sleep(nanoseconds: 100_000_000); waited += 0.1
+    }
+    #expect(playerItem.status == .readyToPlay,
+            "ambiance failed to load: \(playerItem.error?.localizedDescription ?? "unknown")")
+
+    // The seek that the player engine does, and the one that was previously issued too early.
+    await playerItem.seek(to: CMTime(seconds: item.joinAt, preferredTimescale: 600),
+                          toleranceBefore: .zero, toleranceAfter: .zero)
+    try await Task.sleep(nanoseconds: 2_500_000_000)
+
+    let at = playerItem.currentTime().seconds
+    print("  playhead   \(String(format: "%.1f", at))s")
+    #expect(player.rate > 0, "ambiance is not advancing")
+    #expect(abs(at - item.joinAt) < 60,
+            "ambiance is playing at \(Int(at))s, not the \(Int(item.joinAt))s the clock says")
+    player.pause()
+    if let s = item.session { await plex.stop(session: s) }
+}
+
+@Test(.enabled(if: live)) func theBoundaryFiresSoTheChannelCanAdvance() async throws {
+    let (box, plex, plexBase) = try await clients()
+    let state = try await box.now(channel: 6)
+    let entry = try #require(state.now)
+
+    let resolver = StreamResolver(plex: plex, clientID: "tub3-test-0001")
+    let real = try await resolver.resolve(entry, base: plexBase)
+
+    // Same item, but entitled to only a few seconds — this is exactly what the engine does
+    // at every ad break, just compressed so a test can watch it happen.
+    let clipped = PlayableItem(url: real.url, joinAt: real.joinAt, playFor: 6,
+                               session: real.session, title: real.title,
+                               contentType: real.contentType)
+
+    let engine = await PlayerEngine()
+    await engine.attach(plex: plex)
+
+    let fired = Fired()
+    await MainActor.run { engine.onBoundary = { fired.mark() } }
+    await engine.play(clipped)
+
+    // Generous: the join and first frames take a couple of seconds before the six start.
+    for _ in 0 ..< 40 {
+        if fired.value { break }
+        try await Task.sleep(nanoseconds: 500_000_000)
+    }
+    let at = await MainActor.run { engine.player.currentItem?.currentTime().seconds ?? -1 }
+    print("  playhead at \(String(format: "%.1f", at))s, wanted to stop at \(Int(clipped.stopAt))s")
+    print("  boundary fired: \(fired.value)")
+    #expect(fired.value, "the item ended and nothing told the channel to advance")
+    await engine.stop()
+}
+
+/// A tiny box so the boundary callback can be observed from the test.
+final class Fired: @unchecked Sendable {
+    private var flag = false
+    private let lock = NSLock()
+    func mark() { lock.lock(); flag = true; lock.unlock() }
+    var value: Bool { lock.lock(); defer { lock.unlock() }; return flag }
+}
+
+@Test(.enabled(if: live)) func channelFourteenActuallyPlays() async throws {
+    let (box, plex, plexBase) = try await clients()
+    let state = try await box.now(channel: 14)
+    let entry = try #require(state.now, "ch14 off air")
+    let ref = try #require(entry.plex)
+    print("  box says   \(entry.displayTitle)")
+    print("  rating key \(ref.ratingKey) media \(ref.mediaIndex) part \(ref.partIndex)")
+
+    let part = try await plex.part(ratingKey: ref.ratingKey,
+                                   mediaIndex: ref.mediaIndex, partIndex: ref.partIndex)
+    print("  part       container=\(part.container) video=\(part.videoCodec) "
+          + "audio=\(part.audioCodec) width=\(part.width)")
+    print("  route      \(StreamRouter.route(part))")
+
+    let resolver = StreamResolver(plex: plex, clientID: "tub3-test-0001")
+    let item = try await resolver.resolve(entry, base: plexBase)
+    print("  url        \(item.url.absoluteString.prefix(120))")
+
+    let playerItem = AVPlayerItem(url: item.url)
+    let player = AVPlayer(playerItem: playerItem)
+    if item.playFor > 0 {
+        playerItem.forwardPlaybackEndTime = CMTime(seconds: item.stopAt, preferredTimescale: 600)
+    }
+    player.play()
+    var waited = 0.0
+    while playerItem.status == .unknown, waited < 25 {
+        try await Task.sleep(nanoseconds: 100_000_000); waited += 0.1
+    }
+    print("  status     \(playerItem.status.rawValue) (1=ready 2=failed)")
+    if let error = playerItem.error { print("  ERROR      \(error)") }
+    try await Task.sleep(nanoseconds: 3_000_000_000)
+    print("  tracks     \(playerItem.tracks.count)")
+    print("  playhead   \(String(format: "%.1f", playerItem.currentTime().seconds))")
+    print("  rate       \(player.rate)")
+    #expect(playerItem.status == .readyToPlay)
+    #expect(player.rate > 0)
+    player.pause()
+    if let s = item.session { await plex.stop(session: s) }
+}
