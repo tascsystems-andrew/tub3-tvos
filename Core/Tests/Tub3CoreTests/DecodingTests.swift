@@ -4,7 +4,7 @@ import Testing
 
 /// Decoding is tested against payloads captured from the running box, not hand-written ones.
 /// A fixture that drifts from reality is worse than no fixture, so `scripts/refresh-fixtures.sh`
-/// re-captures these from http://boobtube:8008.
+/// re-captures these from a running box.
 private func fixture(_ name: String) throws -> Data {
     let url = Bundle.module.url(forResource: "Fixtures/\(name)", withExtension: nil)
     return try Data(contentsOf: #require(url))

@@ -1,6 +1,28 @@
+# Xcode's generated project. Regenerated from project.yml by xcodegen, so committing it
+# would mean two sources of truth for the same settings.
 *.xcodeproj
-build/
 DerivedData/
 .swiftpm/
 .DS_Store
 *.ipa
+
+# Build output. BOTH spellings, deliberately.
+#
+# `build/` does not match `.build/` — gitignore patterns are literal, and the leading dot
+# makes it a different name. SwiftPM builds into `.build/`, so 2,790 object files,
+# .swiftmodules and index-store records were committed to a public repository, which is
+# 95 MB of the 96 MB it takes to clone. Several of them embed absolute paths from this
+# machine, and one had a LAN address compiled into a test binary.
+build/
+.build/
+*.xcarchive
+*.o
+*.swiftmodule
+
+# Signing material. Nothing here is committed today; the rule exists so that the first time
+# a .p8 or .p12 is downloaded into this directory, git does not offer to add it.
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+ExportOptions.plist

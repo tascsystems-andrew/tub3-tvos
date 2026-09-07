@@ -4,12 +4,12 @@ import AVFoundation
 
 /// Resolve and actually play whatever is on given channels, right now, against the real box
 /// and real Plex. Run by name:
-///   swift test --package-path Core --filter LiveChannelProbe
+///   TUB3_BOX=http://yourbox:8008 swift test --package-path Core --filter LiveChannelProbe
 @MainActor
 final class LiveChannelProbe: XCTestCase {
     func testChannelsPlay() async throws {
         let channels = [12, 13]
-        let box = BoxClient(base: URL(string: "http://boobtube:8008")!)
+        let box = BoxClient(base: LiveTarget.box)
         guard let base = try await box.plexBase() else { return XCTFail("no plex base") }
         let plex = PlexClient(base: base, clientID: "probe-mac")
         let resolver = StreamResolver(plex: plex, clientID: "probe-mac")

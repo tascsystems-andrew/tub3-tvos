@@ -3,10 +3,10 @@ import AVFoundation
 @testable import Tub3Core
 
 /// Talks to the real box and the real Plex. Never part of the suite — run by name:
-///   swift test --package-path Core --filter LiveAmbianceProbe
+///   TUB3_BOX=http://yourbox:8008 swift test --package-path Core --filter LiveAmbianceProbe
 final class LiveAmbianceProbe: XCTestCase {
     func testAmbianceActuallyPlays() async throws {
-        let box = BoxClient(base: URL(string: "http://boobtube:8008")!)
+        let box = BoxClient(base: LiveTarget.box)
         let now = try await box.now(channel: 13)
         guard let entry = now.now else { return XCTFail("box had nothing on channel 13") }
         guard let base = try await box.plexBase() else { return XCTFail("no plex base") }

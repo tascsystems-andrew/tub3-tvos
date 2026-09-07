@@ -3,11 +3,11 @@ import AVFoundation
 @testable import Tub3Core
 
 /// Talks to the real box. Run by name:
-///   swift test --package-path Core --filter LiveGuideMusicProbe
+///   TUB3_BOX=http://yourbox:8008 swift test --package-path Core --filter LiveGuideMusicProbe
 @MainActor
 final class LiveGuideMusicProbe: XCTestCase {
     func testGuideMusicPlays() async throws {
-        let box = BoxClient(base: URL(string: "http://boobtube:8008")!)
+        let box = BoxClient(base: LiveTarget.box)
         let tracks = try await box.guideMusic()
         print("PROBE tracks:", tracks.map(\.absoluteString))
         XCTAssertFalse(tracks.isEmpty, "the box offered no guide music")

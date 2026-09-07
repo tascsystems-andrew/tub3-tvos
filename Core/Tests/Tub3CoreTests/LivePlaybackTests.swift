@@ -13,7 +13,7 @@ import Testing
 private let live = ProcessInfo.processInfo.environment["TUB3_LIVE"] == "1"
 
 private func clients() async throws -> (BoxClient, PlexClient, URL) {
-    let box = BoxClient(base: URL(string: "http://boobtube:8008")!)
+    let box = BoxClient(base: LiveTarget.box)
     let plexBase = try #require(try await box.plexBase())
     return (box, PlexClient(base: plexBase, clientID: "tub3-test-0001"), plexBase)
 }

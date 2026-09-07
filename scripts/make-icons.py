@@ -12,7 +12,8 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(HERE, "Apps/TV/Assets.xcassets")
 BRAND = os.path.join(ASSETS, "App Icon & Top Shelf Image.brandassets")
-MARK = "/path/to/BoobTube/8008tub3/packaging/assets/splash.png"
+MARK = os.environ.get("TUB3_MARK") or str(
+    pathlib.Path(__file__).resolve().parents[2] / "8008tub3" / "runtime" / "logo.png")
 
 INK = (12, 11, 10, 255)
 GOLD = (255, 200, 60, 255)
