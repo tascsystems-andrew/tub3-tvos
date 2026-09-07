@@ -68,3 +68,30 @@ touch controls. Nothing is tuned for a real Apple TV yet — see below.
 Pairing is interactive and cannot be scripted: Xcode › Window › Devices and Simulators, pair
 the Apple TV over the network, enter the code it shows. Everything after that is scriptable.
 The signing team is `32CZP96PT9` — not the id inside the certificate's common name.
+
+## TestFlight
+
+tvOS ships through TestFlight like any other platform — there is a TestFlight app on the
+Apple TV itself. Builds expire after 90 days; internal testers skip Beta App Review.
+
+Everything is wired up except the credentials, which cannot be created from a terminal:
+
+1. **An App Store Connect API key.** appstoreconnect.apple.com → Users and Access →
+   Integrations → App Store Connect API → Team Keys → generate one with the **App Manager**
+   role. The `.p8` downloads exactly once. Put it at
+   `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8` and note the Key ID and Issuer ID.
+
+2. **An app record**, at App Store Connect → Apps → +. Bundle ID `com.tascsystems.tub3`,
+   platform tvOS. The name must be unique across the whole store, so "8008TUB3" may need a
+   suffix.
+
+Then:
+
+```bash
+ASC_KEY_ID=XXXXXXXXXX ASC_ISSUER_ID=xxxxxxxx-... make testflight
+```
+
+With the key present, `xcodebuild` creates the **Apple Distribution** certificate and the
+App Store provisioning profile on its own. Without it, automatic signing falls back to asking
+for a *development* profile and fails complaining about registered devices — which points at
+entirely the wrong problem.

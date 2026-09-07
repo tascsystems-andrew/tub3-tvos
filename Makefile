@@ -27,5 +27,32 @@ phone: gen                 ## build the iOS/iPadOS app
 	xcodebuild -project Tub3.xcodeproj -scheme Tub3Phone \
 	  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build build | tail -3
 
+# --- TestFlight -------------------------------------------------------------------------
+# Needs an App Store Connect API key at ~/.appstoreconnect/private_keys/AuthKey_<ID>.p8 and
+# these two set in your environment (or on the make command line):
+#   ASC_KEY_ID=XXXXXXXXXX  ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# With the key present, xcodebuild creates the distribution certificate and provisioning
+# profile itself — which is why the key is the single thing that unblocks all of this.
+ASC_KEY := $(HOME)/.appstoreconnect/private_keys/AuthKey_$(ASC_KEY_ID).p8
+
+archive: gen               ## build a signed .xcarchive for the App Store
+	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
+	  -destination 'generic/platform=tvOS' \
+	  -archivePath build/Tub3TV.xcarchive archive \
+	  -allowProvisioningUpdates \
+	  -authenticationKeyPath $(ASC_KEY) \
+	  -authenticationKeyID $(ASC_KEY_ID) \
+	  -authenticationKeyIssuerID $(ASC_ISSUER_ID)
+
+testflight: archive        ## upload that archive to TestFlight
+	xcodebuild -exportArchive \
+	  -archivePath build/Tub3TV.xcarchive \
+	  -exportOptionsPlist ExportOptions.plist \
+	  -exportPath build/export \
+	  -allowProvisioningUpdates \
+	  -authenticationKeyPath $(ASC_KEY) \
+	  -authenticationKeyID $(ASC_KEY_ID) \
+	  -authenticationKeyIssuerID $(ASC_ISSUER_ID)
+
 clean:
 	rm -rf build Tub3.xcodeproj

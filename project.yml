@@ -30,7 +30,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
   Tub3Phone:
     type: application
     platform: iOS
@@ -58,3 +60,18 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3.uitests
         TEST_TARGET_NAME: Tub3TV
         GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Tub3TV:
+    build:
+      targets:
+        Tub3TV: all
+        Tub3TVUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [Tub3TVUITests]
+    # Archive must be Release, or automatic signing reaches for a *development* profile —
+    # which needs a registered device and is the wrong kind of profile for TestFlight.
+    archive:
+      config: Release
