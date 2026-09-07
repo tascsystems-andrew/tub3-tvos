@@ -31,6 +31,12 @@ targets:
         # the local network. Declaring it here answers App Store Connect's export-compliance
         # question once, instead of on every build upload.
         ITSAppUsesNonExemptEncryption: false
+        # Point the plist at the build settings rather than repeating the numbers. Without
+        # these two lines Info.plist carried a literal "1" and MARKETING_VERSION /
+        # CURRENT_PROJECT_VERSION were decoration — a bump would have changed nothing, and
+        # the second upload of a build would have been rejected as a duplicate.
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3
