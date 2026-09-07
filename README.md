@@ -69,29 +69,42 @@ Pairing is interactive and cannot be scripted: Xcode › Window › Devices and 
 the Apple TV over the network, enter the code it shows. Everything after that is scriptable.
 The signing team is `32CZP96PT9` — not the id inside the certificate's common name.
 
-## TestFlight
+## Getting it onto an Apple TV
 
-tvOS ships through TestFlight like any other platform — there is a TestFlight app on the
-Apple TV itself. Builds expire after 90 days; internal testers skip Beta App Review.
+### The straightforward way — Xcode, no API key
 
-Everything is wired up except the credentials, which cannot be created from a terminal:
+This is the same flow as any iOS app and needs nothing set up in advance:
 
-1. **An App Store Connect API key.** appstoreconnect.apple.com → Users and Access →
-   Integrations → App Store Connect API → Team Keys → generate one with the **App Manager**
-   role. The `.p8` downloads exactly once. Put it at
-   `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8` and note the Key ID and Issuer ID.
+```bash
+make gen && open Tub3.xcodeproj
+```
 
-2. **An app record**, at App Store Connect → Apps → +. Bundle ID `com.tascsystems.tub3`,
-   platform tvOS. The name must be unique across the whole store, so "8008TUB3" may need a
-   suffix.
+Then **Product › Archive**, and in the Organizer **Distribute App › TestFlight (and App Store)**.
+Xcode creates the Apple Distribution certificate and the App Store provisioning profile itself,
+prompting once. You will also need an app record at App Store Connect (bundle
+`com.tascsystems.tub3`, platform tvOS); the store-wide name must be unique.
 
-Then:
+**Why the command line cannot do this unattended.** `xcodebuild archive` with automatic
+signing asks Apple for a *development* profile, and a tvOS development profile requires a
+registered Apple TV. With none registered the archive fails with
+
+> Your team has no devices from which to generate a provisioning profile
+
+which is a message about devices when the actual missing thing is a distribution certificate.
+Either register an Apple TV, or archive from the GUI, or supply an API key (below).
+
+### The unattended way — an App Store Connect API key
+
+Only needed for CI or a scripted release. Generate one at App Store Connect › Users and
+Access › Integrations › App Store Connect API › Team Keys with the **App Manager** role, save
+the `.p8` to `~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8`, then:
 
 ```bash
 ASC_KEY_ID=XXXXXXXXXX ASC_ISSUER_ID=xxxxxxxx-... make testflight
 ```
 
-With the key present, `xcodebuild` creates the **Apple Distribution** certificate and the
-App Store provisioning profile on its own. Without it, automatic signing falls back to asking
-for a *development* profile and fails complaining about registered devices — which points at
-entirely the wrong problem.
+### Running it on your own Apple TV directly
+
+Pair it once — Xcode › Window › Devices and Simulators, add over the network, enter the code
+shown on screen. That also registers it with your team, which makes the command-line archive
+above work. The signing team is `32CZP96PT9`, not the id inside the certificate's common name.
