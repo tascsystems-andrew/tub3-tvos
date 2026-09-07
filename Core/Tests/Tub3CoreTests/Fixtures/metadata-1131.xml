@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MediaContainer size="1" allowSync="1" identifier="com.plexapp.plugins.library" librarySectionID="1" librarySectionTitle="Movies" librarySectionUUID="98bc26c7-9995-4ea2-8797-f9271a95be3a" mediaTagPrefix="/system/bundle/media/flags/" mediaTagVersion="1783932891">
+<Video ratingKey="1131" key="/library/metadata/1131" guid="plex://movie/5d776824880197001ec901ac" slug="star-wars-episode-iv-a-new-hope" studio="Lucasfilm Ltd." type="movie" title="Star Wars: Episode IV - A New Hope" librarySectionTitle="Movies" librarySectionID="1" librarySectionKey="/library/sections/1" originalTitle="Star Wars" contentRating="PG" contentRatingAge="8" summary="Princess Leia is captured and held hostage by the evil Imperial forces in their effort to take over the galactic Empire. Venturesome Luke Skywalker and dashing captain Han Solo team together with the loveable robot duo R2-D2 and C-3PO to rescue the beautiful princess and restore peace and justice in the Empire." rating="9.3" audienceRating="9.6" viewOffset="3167705" lastViewedAt="1775962366" year="1977" tagline="A long time ago in a galaxy far, far away..." thumb="/library/metadata/1131/thumb/1785757350" art="/library/metadata/1131/art/1785757350" duration="7482080" originallyAvailableAt="1977-05-25" addedAt="1611949324" updatedAt="1785757350" audienceRatingImage="rottentomatoes://image.rating.upright" chapterSource="media" primaryExtraKey="/library/metadata/1139" ratingImage="rottentomatoes://image.rating.ripe">
+<Media id="10272" duration="7482080" bitrate="10579" width="1920" height="1080" aspectRatio="1.78" audioChannels="6" audioCodec="eac3" videoCodec="h264" videoResolution="1080" container="mkv" videoFrameRate="24p" videoProfile="high" hasVoiceActivity="0">
+<Part id="10272" key="/library/parts/10272/1750196272/file.mkv" duration="7482080" file="/Media/Movies/Star Wars Episode IV A New Hope/Star Wars (1977) WEBDL-1080p.mkv" size="9894559375" container="mkv" videoProfile="high">
+<Stream id="27227" streamType="1" default="1" codec="h264" index="0" bitrate="6227" language="English" languageTag="en" languageCode="eng" bitDepth="8" chromaLocation="left" chromaSubsampling="4:2:0" codedHeight="1088" codedWidth="1920" colorPrimaries="bt709" colorRange="tv" colorSpace="bt709" colorTrc="bt709" frameRate="23.976" hasScalingMatrix="0" height="1080" level="40" profile="high" refFrames="4" scanType="progressive" width="1920" displayTitle="1080p" extendedDisplayTitle="1080p (H.264)">
+</Stream>
+<Stream id="27228" streamType="2" default="1" codec="eac3" index="1" channels="6" bitrate="256" language="&#20013;&#25991;" languageTag="zh" languageCode="zho" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="&#20013;&#25991; (EAC3 5.1)" extendedDisplayTitle="&#20013;&#25991; (EAC3 5.1)">
+</Stream>
+<Stream id="27229" streamType="2" codec="eac3" index="2" channels="6" bitrate="256" language="&#268;e&#353;tina" languageTag="cs" languageCode="ces" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="&#268;e&#353;tina (EAC3 5.1)" extendedDisplayTitle="&#268;e&#353;tina (EAC3 5.1)">
+</Stream>
+<Stream id="27230" streamType="2" codec="eac3" index="3" channels="6" bitrate="256" language="Deutsch" languageTag="de" languageCode="deu" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="Deutsch (EAC3 5.1)" extendedDisplayTitle="Deutsch (EAC3 5.1)">
+</Stream>
+<Stream id="27231" streamType="2" selected="1" codec="eac3" index="4" channels="6" bitrate="768" language="English" languageTag="en" languageCode="eng" audioChannelLayout="5.1(side)" profile="dolby digital plus + dolby atmos" samplingRate="48000" displayTitle="English (EAC3 5.1 + Atmos)" extendedDisplayTitle="English (EAC3 5.1 + Atmos)">
+</Stream>
+<Stream id="27232" streamType="2" codec="eac3" index="5" channels="6" bitrate="256" language="Espa&#241;ol" languageTag="es" languageCode="spa" audioChannelLayout="5.1(side)" samplingRate="48000" title="Latin American" displayTitle="Espa&#241;ol (EAC3 5.1)" extendedDisplayTitle="Latin American (Espa&#241;ol EAC3 5.1)">
+</Stream>
+<Stream id="27233" streamType="2" codec="eac3" index="6" channels="6" bitrate="256" language="Espa&#241;ol" languageTag="es" languageCode="spa" audioChannelLayout="5.1(side)" samplingRate="48000" title="European" displayTitle="Espa&#241;ol (EAC3 5.1)" extendedDisplayTitle="European (Espa&#241;ol EAC3 5.1)">
+</Stream>
+<Stream id="27234" streamType="2" codec="eac3" index="7" channels="6" bitrate="256" language="Fran&#231;ais" languageTag="fr" languageCode="fra" audioChannelLayout="5.1(side)" samplingRate="48000" title="European" displayTitle="Fran&#231;ais (EAC3 5.1)" extendedDisplayTitle="European (Fran&#231;ais EAC3 5.1)">
+</Stream>
+<Stream id="27235" streamType="2" codec="eac3" index="8" channels="6" bitrate="256" language="magyar" languageTag="hu" languageCode="hun" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="magyar (EAC3 5.1)" extendedDisplayTitle="magyar (EAC3 5.1)">
+</Stream>
+<Stream id="27236" streamType="2" codec="eac3" index="9" channels="6" bitrate="256" language="Italiano" languageTag="it" languageCode="ita" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="Italiano (EAC3 5.1)" extendedDisplayTitle="Italiano (EAC3 5.1)">
+</Stream>
+<Stream id="27237" streamType="2" codec="eac3" index="10" channels="6" bitrate="256" language="&#26085;&#26412;&#35486;" languageTag="ja" languageCode="jpn" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="&#26085;&#26412;&#35486; (EAC3 5.1)" extendedDisplayTitle="&#26085;&#26412;&#35486; (EAC3 5.1)">
+</Stream>
+<Stream id="27238" streamType="2" codec="eac3" index="11" channels="6" bitrate="256" language="&#54620;&#44397;&#50612;" languageTag="ko" languageCode="kor" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="&#54620;&#44397;&#50612; (EAC3 5.1)" extendedDisplayTitle="&#54620;&#44397;&#50612; (EAC3 5.1)">
+</Stream>
+<Stream id="27239" streamType="2" codec="eac3" index="12" channels="6" bitrate="256" language="polski" languageTag="pl" languageCode="pol" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="polski (EAC3 5.1)" extendedDisplayTitle="polski (EAC3 5.1)">
+</Stream>
+<Stream id="27240" streamType="2" codec="eac3" index="13" channels="6" bitrate="256" language="Portugu&#234;s" languageTag="pt-BR" languageCode="por" audioChannelLayout="5.1(side)" samplingRate="48000" title="Brazilian" displayTitle="Portugu&#234;s (EAC3 5.1)" extendedDisplayTitle="Brazilian (Portugu&#234;s EAC3 5.1)">
+</Stream>
+<Stream id="27241" streamType="2" codec="eac3" index="14" channels="6" bitrate="256" language="Sloven&#269;ina" languageTag="sk" languageCode="slk" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="Sloven&#269;ina (EAC3 5.1)" extendedDisplayTitle="Sloven&#269;ina (EAC3 5.1)">
+</Stream>
+<Stream id="27242" streamType="2" codec="eac3" index="15" channels="6" bitrate="256" language="T&#252;rk&#231;e" languageTag="tr" languageCode="tur" audioChannelLayout="5.1(side)" samplingRate="48000" displayTitle="T&#252;rk&#231;e (EAC3 5.1)" extendedDisplayTitle="T&#252;rk&#231;e (EAC3 5.1)">
+</Stream>
+<Stream id="27243" streamType="3" canAutoSync="0" default="1" forced="1" codec="srt" index="16" bitrate="0" language="&#20013;&#25991;" languageTag="zh" languageCode="zho" title="Forced" displayTitle="&#20013;&#25991; Forced" extendedDisplayTitle="Forced (&#20013;&#25991; SRT)">
+</Stream>
+<Stream id="27244" streamType="3" canAutoSync="0" forced="1" codec="srt" index="17" bitrate="0" language="&#268;e&#353;tina" languageTag="cs" languageCode="ces" title="Forced" displayTitle="&#268;e&#353;tina Forced" extendedDisplayTitle="Forced (&#268;e&#353;tina SRT)">
+</Stream>
+<Stream id="27245" streamType="3" canAutoSync="0" forced="1" codec="srt" index="18" bitrate="0" language="Deutsch" languageTag="de" languageCode="deu" title="Forced" displayTitle="Deutsch Forced" extendedDisplayTitle="Forced (Deutsch SRT)">
+</Stream>
+<Stream id="27246" streamType="3" canAutoSync="0" forced="1" codec="srt" index="19" bitrate="0" language="English" languageTag="en" languageCode="eng" title="Forced" displayTitle="English Forced" extendedDisplayTitle="Forced (English SRT)">
+</Stream>
+<Stream id="27247" streamType="3" canAutoSync="0" forced="1" codec="srt" index="20" bitrate="0" language="Espa&#241;ol" languageTag="es" languageCode="spa" title="Latin American (Forced)" displayTitle="Espa&#241;ol Forced" extendedDisplayTitle="Latin American (Forced) (Espa&#241;ol SRT)">
+</Stream>
+<Stream id="27248" streamType="3" canAutoSync="0" forced="1" codec="srt" index="21" bitrate="0" language="Espa&#241;ol" languageTag="es" languageCode="spa" title="European (Forced)" displayTitle="Espa&#241;ol Forced" extendedDisplayTitle="European (Forced) (Espa&#241;ol SRT)">
+</Stream>
+<Stream id="27249" streamType="3" canAutoSync="0" forced="1" codec="srt" index="22" bitrate="0" language="Fran&#231;ais" languageTag="fr" languageCode="fra" title="European (Forced)" displayTitle="Fran&#231;ais Forced" extendedDisplayTitle="European (Forced) (Fran&#231;ais SRT)">
+</Stream>
+<Stream id="27250" streamType="3" canAutoSync="0" forced="1" codec="srt" index="23" bitrate="0" language="magyar" languageTag="hu" languageCode="hun" title="Forced" displayTitle="magyar Forced" extendedDisplayTitle="Forced (magyar SRT)">
+</Stream>
+<Stream id="27251" streamType="3" canAutoSync="0" forced="1" codec="srt" index="24" bitrate="0" language="Italiano" languageTag="it" languageCode="ita" title="Forced" displayTitle="Italiano Forced" extendedDisplayTitle="Forced (Italiano SRT)">
+</Stream>
+<Stream id="27252" streamType="3" canAutoSync="0" forced="1" codec="srt" index="25" bitrate="0" language="&#26085;&#26412;&#35486;" languageTag="ja" languageCode="jpn" title="Forced" displayTitle="&#26085;&#26412;&#35486; Forced" extendedDisplayTitle="Forced (&#26085;&#26412;&#35486; SRT)">
+</Stream>
+<Stream id="27253" streamType="3" canAutoSync="0" forced="1" codec="srt" index="26" bitrate="0" language="&#54620;&#44397;&#50612;" languageTag="ko" languageCode="kor" title="Forced" displayTitle="&#54620;&#44397;&#50612; Forced" extendedDisplayTitle="Forced (&#54620;&#44397;&#50612; SRT)">
+</Stream>
+<Stream id="27254" streamType="3" canAutoSync="0" forced="1" codec="srt" index="27" bitrate="0" language="polski" languageTag="pl" languageCode="pol" title="Forced" displayTitle="polski Forced" extendedDisplayTitle="Forced (polski SRT)">
+</Stream>
+<Stream id="27255" streamType="3" canAutoSync="0" forced="1" codec="srt" index="28" bitrate="0" language="Portugu&#234;s" languageTag="pt-BR" languageCode="por" title="Brazilian (Forced)" displayTitle="Portugu&#234;s Forced" extendedDisplayTitle="Brazilian (Forced) (Portugu&#234;s SRT)">
+</Stream>
+<Stream id="27256" streamType="3" canAutoSync="0" forced="1" codec="srt" index="29" bitrate="0" language="Sloven&#269;ina" languageTag="sk" languageCode="slk" title="Forced" displayTitle="Sloven&#269;ina Forced" extendedDisplayTitle="Forced (Sloven&#269;ina SRT)">
+</Stream>
+<Stream id="27257" streamType="3" canAutoSync="0" codec="srt" index="30" bitrate="0" language="&#268;e&#353;tina" languageTag="cs" languageCode="ces" displayTitle="&#268;e&#353;tina" extendedDisplayTitle="&#268;e&#353;tina (SRT)">
+</Stream>
+<Stream id="27258" streamType="3" canAutoSync="0" codec="srt" index="31" bitrate="0" language="Dansk" languageTag="da" languageCode="dan" displayTitle="Dansk" extendedDisplayTitle="Dansk (SRT)">
+</Stream>
+<Stream id="27259" streamType="3" canAutoSync="0" codec="srt" index="32" bitrate="0" language="Deutsch" languageTag="de" languageCode="deu" displayTitle="Deutsch" extendedDisplayTitle="Deutsch (SRT)">
+</Stream>
+<Stream id="27260" streamType="3" canAutoSync="0" codec="srt" index="33" bitrate="0" language="&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;" languageTag="el" languageCode="ell" displayTitle="&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940;" extendedDisplayTitle="&#917;&#955;&#955;&#951;&#957;&#953;&#954;&#940; (SRT)">
+</Stream>
+<Stream id="27261" streamType="3" canAutoSync="0" codec="srt" index="34" bitrate="0" language="English" languageTag="en" languageCode="eng" title="SDH" displayTitle="English" extendedDisplayTitle="SDH (English SRT)">
+</Stream>
+<Stream id="27262" streamType="3" canAutoSync="0" codec="srt" index="35" bitrate="0" language="Espa&#241;ol" languageTag="es" languageCode="spa" title="Latin American" displayTitle="Espa&#241;ol" extendedDisplayTitle="Latin American (Espa&#241;ol SRT)">
+</Stream>
+<Stream id="27263" streamType="3" canAutoSync="0" codec="srt" index="36" bitrate="0" language="Espa&#241;ol" languageTag="es" languageCode="spa" title="European" displayTitle="Espa&#241;ol" extendedDisplayTitle="European (Espa&#241;ol SRT)">
+</Stream>
+<Stream id="27264" streamType="3" canAutoSync="0" codec="srt" index="37" bitrate="0" language="Suomi" languageTag="fi" languageCode="fin" displayTitle="Suomi" extendedDisplayTitle="Suomi (SRT)">
+</Stream>
+<Stream id="27265" streamType="3" canAutoSync="0" codec="srt" index="38" bitrate="0" language="Fran&#231;ais" languageTag="fr" languageCode="fra" title="European" displayTitle="Fran&#231;ais" extendedDisplayTitle="European (Fran&#231;ais SRT)">
+</Stream>
+<Stream id="27266" streamType="3" canAutoSync="0" codec="srt" index="39" bitrate="0" language="magyar" languageTag="hu" languageCode="hun" displayTitle="magyar" extendedDisplayTitle="magyar (SRT)">
+</Stream>
+<Stream id="27267" streamType="3" canAutoSync="0" codec="srt" index="40" bitrate="0" language="&#237;slenska" languageTag="is" languageCode="isl" displayTitle="&#237;slenska" extendedDisplayTitle="&#237;slenska (SRT)">
+</Stream>
+<Stream id="27268" streamType="3" canAutoSync="0" codec="srt" index="41" bitrate="0" language="Italiano" languageTag="it" languageCode="ita" displayTitle="Italiano" extendedDisplayTitle="Italiano (SRT)">
+</Stream>
+<Stream id="27269" streamType="3" canAutoSync="0" codec="srt" index="42" bitrate="0" language="&#26085;&#26412;&#35486;" languageTag="ja" languageCode="jpn" displayTitle="&#26085;&#26412;&#35486;" extendedDisplayTitle="&#26085;&#26412;&#35486; (SRT)">
+</Stream>
+<Stream id="27270" streamType="3" canAutoSync="0" codec="srt" index="43" bitrate="0" language="&#54620;&#44397;&#50612;" languageTag="ko" languageCode="kor" displayTitle="&#54620;&#44397;&#50612;" extendedDisplayTitle="&#54620;&#44397;&#50612; (SRT)">
+</Stream>
+<Stream id="27271" streamType="3" canAutoSync="0" codec="srt" index="44" bitrate="0" language="Nederlands" languageTag="nl" languageCode="nld" displayTitle="Nederlands" extendedDisplayTitle="Nederlands (SRT)">
+</Stream>
+<Stream id="27272" streamType="3" canAutoSync="0" codec="srt" index="45" bitrate="0" language="norsk" languageTag="no" languageCode="nor" displayTitle="norsk" extendedDisplayTitle="norsk (SRT)">
+</Stream>
+<Stream id="27273" streamType="3" canAutoSync="0" codec="srt" index="46" bitrate="0" language="polski" languageTag="pl" languageCode="pol" displayTitle="polski" extendedDisplayTitle="polski (SRT)">
+</Stream>
+<Stream id="27274" streamType="3" canAutoSync="0" codec="srt" index="47" bitrate="0" language="Portugu&#234;s" languageTag="pt-BR" languageCode="por" title="Brazilian" displayTitle="Portugu&#234;s" extendedDisplayTitle="Brazilian (Portugu&#234;s SRT)">
+</Stream>
+<Stream id="27275" streamType="3" canAutoSync="0" codec="srt" index="48" bitrate="0" language="Portugu&#234;s" languageTag="pt" languageCode="por" title="European" displayTitle="Portugu&#234;s" extendedDisplayTitle="European (Portugu&#234;s SRT)">
+</Stream>
+<Stream id="27276" streamType="3" canAutoSync="0" codec="srt" index="49" bitrate="0" language="rom&#226;n&#259;" languageTag="ro" languageCode="ron" displayTitle="rom&#226;n&#259;" extendedDisplayTitle="rom&#226;n&#259; (SRT)">
+</Stream>
+<Stream id="27277" streamType="3" canAutoSync="0" codec="srt" index="50" bitrate="0" language="Sloven&#269;ina" languageTag="sk" languageCode="slk" displayTitle="Sloven&#269;ina" extendedDisplayTitle="Sloven&#269;ina (SRT)">
+</Stream>
+<Stream id="27278" streamType="3" canAutoSync="0" codec="srt" index="51" bitrate="0" language="Svenska" languageTag="sv" languageCode="swe" displayTitle="Svenska" extendedDisplayTitle="Svenska (SRT)">
+</Stream>
+<Stream id="27279" streamType="3" canAutoSync="0" codec="srt" index="52" bitrate="0" language="T&#252;rk&#231;e" languageTag="tr" languageCode="tur" displayTitle="T&#252;rk&#231;e" extendedDisplayTitle="T&#252;rk&#231;e (SRT)">
+</Stream>
+<Stream id="27280" streamType="3" canAutoSync="0" codec="srt" index="53" bitrate="0" language="&#20013;&#25991;" languageTag="zh" languageCode="zho" title="Hong Kong" displayTitle="&#20013;&#25991;" extendedDisplayTitle="Hong Kong (&#20013;&#25991; SRT)">
+</Stream>
+<Stream id="27281" streamType="3" canAutoSync="0" codec="srt" index="54" bitrate="0" language="&#20013;&#25991;" languageTag="zh" languageCode="zho" title="Simplified" displayTitle="&#20013;&#25991;" extendedDisplayTitle="Simplified (&#20013;&#25991; SRT)">
+</Stream>
+<Stream id="27282" streamType="3" canAutoSync="0" codec="srt" index="55" bitrate="0" language="&#20013;&#25991;" languageTag="zh" languageCode="zho" title="Traditional" displayTitle="&#20013;&#25991;" extendedDisplayTitle="Traditional (&#20013;&#25991; SRT)">
+</Stream>
+</Part>
+</Media>
+<Media id="2643" duration="7485360" bitrate="778" width="704" height="304" aspectRatio="2.35" audioChannels="2" audioCodec="mp3" videoCodec="mpeg4" videoResolution="sd" container="avi" videoFrameRate="24p" videoProfile="advanced simple" hasVoiceActivity="0">
+<Part id="2643" key="/library/parts/2643/1611949324/file.avi" duration="7485360" file="/Media/Movies/Star Wars Episode IV A New Hope/Star Wars Episode IV A New Hope.avi" size="727666688" container="avi" videoProfile="advanced simple">
+<Stream id="5567" streamType="1" codec="mpeg4" index="0" bitrate="637" bitDepth="8" chromaLocation="left" chromaSubsampling="4:2:0" codecID="XVID" codedHeight="304" codedWidth="704" frameRate="23.976" height="304" level="5" profile="advanced simple" refFrames="1" width="704" displayTitle="SD" extendedDisplayTitle="SD (MPEG4)">
+</Stream>
+<Stream id="5568" streamType="2" selected="1" codec="mp3" index="1" channels="2" bitrate="127" audioChannelLayout="stereo" samplingRate="48000" streamIdentifier="1" displayTitle="Unknown (MP3 Stereo)" extendedDisplayTitle="Unknown (MP3 Stereo)">
+</Stream>
+</Part>
+</Media>
+<Image alt="Star Wars: Episode IV - A New Hope" type="coverPoster" url="/library/metadata/1131/thumb/1785757350" />
+<Image alt="Star Wars: Episode IV - A New Hope" type="background" url="/library/metadata/1131/art/1785757350" />
+<Image alt="Star Wars: Episode IV - A New Hope" type="clearLogo" url="/library/metadata/1131/clearLogo/1785757350" />
+<Image alt="Star Wars: Episode IV - A New Hope" type="backgroundSquare" url="/library/metadata/1131/squareArt/1785757350" />
+<UltraBlurColors topLeft="13030e" topRight="803b31" bottomRight="3a1221" bottomLeft="74332d" />
+<Genre id="88" filter="genre=88" tag="Action" />
+<Genre id="89" filter="genre=89" tag="Adventure" />
+<Genre id="90" filter="genre=90" tag="Science Fiction" />
+<Genre id="91" filter="genre=91" tag="Fantasy" />
+<Country id="13" filter="country=13" tag="United States of America" />
+<Guid id="imdb://tt0076759" />
+<Guid id="tmdb://11" />
+<Guid id="tvdb://71" />
+<Rating image="imdb://image.rating" value="8.6" type="audience" />
+<Rating image="rottentomatoes://image.rating.ripe" value="9.3" type="critic" />
+<Rating image="rottentomatoes://image.rating.upright" value="9.6" type="audience" />
+<Rating image="themoviedb://image.rating" value="8.2" type="audience" />
+<Director id="6777" filter="director=6777" tag="George Lucas" tagKey="5d7768258718ba001e3116aa" thumb="https://metadata-static.plex.tv/3/people/3746263f883c62531dc514a847431467.jpg" />
+<Writer id="3423" filter="writer=3423" tag="George Lucas" tagKey="5d7768258718ba001e3116aa" thumb="https://metadata-static.plex.tv/3/people/3746263f883c62531dc514a847431467.jpg" />
+<Role id="3428" filter="actor=3428" tag="Mark Hamill" tagKey="5d776825880197001ec90325" role="Luke Skywalker" thumb="https://metadata-static.plex.tv/6/people/61ef91392c9712ae1abaf13fb745786c.jpg" />
+<Role id="3519" filter="actor=3519" tag="Harrison Ford" tagKey="5d7768245af944001f1f6354" role="Han Solo" thumb="https://metadata-static.plex.tv/a/people/af67ead9ff669cacc1fbfd62d893f9cd.jpg" />
+<Role id="3427" filter="actor=3427" tag="Carrie Fisher" tagKey="5d776825880197001ec90326" role="Princess Leia Organa" thumb="https://metadata-static.plex.tv/c/people/cad21cc8138a85753f06600137b8384c.jpg" />
+<Role id="7026" filter="actor=7026" tag="Peter Cushing" tagKey="5d776825880197001ec90327" role="Grand Moff Tarkin" thumb="https://metadata-static.plex.tv/2/people/2195b972fb1da179c389d4f60ce6188f.jpg" />
+<Role id="3515" filter="actor=3515" tag="Alec Guinness" tagKey="5d776825880197001ec90328" role="Obi-Wan &#34;Ben&#34; Kenobi" thumb="https://metadata-static.plex.tv/6/people/60e409e391d0101f5414c2d1c424f94f.jpg" />
+<Role id="3432" filter="actor=3432" tag="Anthony Daniels" tagKey="5d776825999c64001ec2bfb0" role="C-3PO" thumb="https://metadata-static.plex.tv/6/people/623e5f4597c3ad6ede26641bc60705b4.jpg" />
+<Role id="6783" filter="actor=6783" tag="Kenny Baker" tagKey="5d776825880197001ec9032a" role="R2-D2" thumb="https://metadata-static.plex.tv/d/people/d06c6bc35a3b555bf9c00a4882db4bda.jpg" />
+<Role id="3649" filter="actor=3649" tag="Peter Mayhew" tagKey="5d776825880197001ec9032b" role="Chewbacca" thumb="https://metadata-static.plex.tv/f/people/f903f09f3d80f3109844dc389111813f.jpg" />
+<Role id="2894" filter="actor=2894" tag="David Prowse" tagKey="5d776825961905001eb909e2" role="Darth Vader (performer)" thumb="https://metadata-static.plex.tv/4/people/4138af4dad1a2d7c32e35dc3ea4fccea.jpg" />
+<Role id="3505" filter="actor=3505" tag="James Earl Jones" tagKey="5d776825880197001ec9032c" role="Darth Vader (voice) (uncredited)" thumb="https://metadata-static.plex.tv/f/people/fdbbea0fc4f4642918f62cc57fe704c7.jpg" />
+<Role id="7027" filter="actor=7027" tag="Phil Brown" tagKey="5d776825880197001ec9032d" role="Uncle Owen" thumb="https://metadata-static.plex.tv/9/people/9805436f5f406d607375c8a83b265d4e.jpg" />
+<Role id="7028" filter="actor=7028" tag="Shelagh Fraser" tagKey="5d776825880197001ec9032e" role="Aunt Beru" thumb="https://metadata-static.plex.tv/7/people/7e56d7dbcd92de8054eae9ce70c8e01a.jpg" />
+<Role id="7029" filter="actor=7029" tag="Jack Purvis" tagKey="5d776825880197001ec9032f" role="Chief Jawa" thumb="https://metadata-static.plex.tv/f/people/f5771cc4702f083918e4f0963f77e7d4.jpg" />
+<Role id="7030" filter="actor=7030" tag="Alex McCrindle" tagKey="5d776825880197001ec90330" role="General Dodonna" thumb="https://metadata-static.plex.tv/5/people/5ec0b71906b48950617b84dacd54d308.jpg" />
+<Role id="7031" filter="actor=7031" tag="Eddie Byrne" tagKey="5d776825880197001ec90331" role="General Willard" thumb="https://metadata-static.plex.tv/5/people/5821061e2962b351b352e2e865e8cb0e.jpg" />
+<Role id="6674" filter="actor=6674" tag="Drewe Henley" tagKey="5d776825880197001ec90332" role="Red Leader" thumb="https://metadata-static.plex.tv/f/people/ff921129b08fd635bfe9c25f150a5230.jpg" />
+<Role id="3501" filter="actor=3501" tag="Denis Lawson" tagKey="5d776825880197001ec90333" role="Red Two (Wedge Antilles)" thumb="https://metadata-static.plex.tv/4/people/4777b3af28e0f9822dff50eff9c05235.jpg" />
+<Role id="6487" filter="actor=6487" tag="Garrick Hagon" tagKey="5d776825880197001ec90334" role="Red Three (Biggs Darklighter)" thumb="https://metadata-static.plex.tv/5/people/5d3e08396c4a3bf2d182c916cee0e744.jpg" />
+<Role id="5763" filter="actor=5763" tag="Jack Klaff" tagKey="5d776825880197001ec90335" role="Red Four (John &#34;D&#34;)" thumb="https://metadata-static.plex.tv/0/people/03282efb935ea30eb7505f62458ce992.jpg" />
+<Role id="7032" filter="actor=7032" tag="William Hootkins" tagKey="5d776825880197001ec90336" role="Red Six (Porkins)" thumb="https://metadata-static.plex.tv/3/people/33e8d5b2eed455355af50c3a0634d478.jpg" />
+<Role id="6675" filter="actor=6675" tag="Angus MacInnes" tagKey="5d776825880197001ec90337" role="Gold Leader" thumb="https://metadata-static.plex.tv/3/people/3f0e032b93fa78820006aed96f332360.jpg" />
+<Role id="7033" filter="actor=7033" tag="Jeremy Sinden" tagKey="5d776825880197001ec90338" role="Gold Two" thumb="https://metadata-static.plex.tv/6/people/6b349aadd54555b7a9b324eb01c26455.jpg" />
+<Role id="7034" filter="actor=7034" tag="Graham Ashley" tagKey="5d776825880197001ec90339" role="Gold Five" thumb="https://image.tmdb.org/t/p/original/fapQU8j2ffZWON2Qav0DJDtYVJV.jpg" />
+<Role id="7035" filter="actor=7035" tag="Don Henderson" tagKey="5d776825880197001ec9033a" role="General Taggi" thumb="https://metadata-static.plex.tv/e/people/e86eecb07b84ad8e7c902ecedc9446ef.jpg" />
+<Role id="6188" filter="actor=6188" tag="Richard LeParmentier" tagKey="5d776825880197001ec9033b" role="General Motti" thumb="https://metadata-static.plex.tv/d/people/d4bd5d72ab0245e191eea8b78f20c0a6.jpg" />
+<Role id="7036" filter="actor=7036" tag="Leslie Schofield" tagKey="5d776825880197001ec9033c" role="Commander #1" thumb="https://metadata-static.plex.tv/e/people/ec4dfcb0fe0a09d28c196d757eb027cb.jpg" />
+<Role id="6223" filter="actor=6223" tag="Michael Leader" tagKey="5d776825880197001ec9033d" role="Stormtrooper" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec9033d.jpg" />
+<Role id="6690" filter="actor=6690" tag="David Ankrum" tagKey="5d776825880197001ec9033e" role="Red Two, Wedge Antilles (voice) (uncredited)" thumb="https://metadata-static.plex.tv/5/people/5d8bf75a1f5d99ef48c618f519350c39.jpg" />
+<Role id="7037" filter="actor=7037" tag="Scott Beach" tagKey="5d776825880197001ec90340" role="Stormtrooper (voice) (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90340.jpg" />
+<Role id="7038" filter="actor=7038" tag="Lightning Bear" tagKey="5d776825880197001ec90341" role="Stormtrooper (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90341.jpg" />
+<Role id="7039" filter="actor=7039" tag="Jon Berg" tagKey="5d776825880197001ec90342" role="Cantina Alien (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90342.jpg" />
+<Role id="7040" filter="actor=7040" tag="Doug Beswick" tagKey="5d776825880197001ec90343" role="Cantina Alien (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90343.jpg" />
+<Role id="7041" filter="actor=7041" tag="Paul Blake" tagKey="5d776825880197001ec90344" role="Greedo (uncredited)" thumb="https://metadata-static.plex.tv/9/people/933ba9d9df8d0e103b6fdbc05350c9b2.jpg" />
+<Role id="7042" filter="actor=7042" tag="Janice Burchette" tagKey="5d776825880197001ec90345" role="Nabrun Leids (uncredited)" />
+<Role id="7043" filter="actor=7043" tag="Ted Burnett" tagKey="5d776825880197001ec90346" role="Wuher (uncredited)" thumb="https://image.tmdb.org/t/p/original/rQn5K59LQ5BNcsr4POCVW1Ku26B.jpg" />
+<Role id="7044" filter="actor=7044" tag="John Chapman" tagKey="5d776825880197001ec90347" role="Drifter (Red 12) (uncredited)" thumb="https://image.tmdb.org/t/p/original/yDyMgd9OomRLGBz4DsqPZbQWPnH.jpg" />
+<Role id="7045" filter="actor=7045" tag="Gilda Cohen" tagKey="5d776825880197001ec90348" role="Cantina Patron (uncredited)" />
+<Role id="7046" filter="actor=7046" tag="Tim Condren" tagKey="5d776825880197001ec90349" role="Stormtrooper (uncredited)" />
+<Role id="7047" filter="actor=7047" tag="Barry Copping" tagKey="5d776825880197001ec9034a" role="Wioslea (uncredited)" />
+<Role id="7048" filter="actor=7048" tag="Alfie Curtis" tagKey="5d776825880197001ec9034b" role="Dr. Evazan (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec9034b.jpg" />
+<Role id="7049" filter="actor=7049" tag="Robert Davies" tagKey="5d776ef5ad5437001f806cc1" role="Cantina Patron (uncredited)" />
+<Role id="7050" filter="actor=7050" tag="Maria De Aragon" tagKey="5d776825880197001ec9034d" role="Greedo (uncredited)" thumb="https://metadata-static.plex.tv/4/people/4661898fac976f4894d3acc0fc275532.jpg" />
+<Role id="7051" filter="actor=7051" tag="Robert A. Denham" tagKey="5d776825880197001ec9034e" role="Hrchek Kal Fas (uncredited)" />
+<Role id="7052" filter="actor=7052" tag="Frazer Diamond" tagKey="5d776825880197001ec9034f" role="Jawa (uncredited)" />
+<Role id="7053" filter="actor=7053" tag="Peter Diamond" tagKey="5d776825880197001ec90350" role="Stormtrooper / Tusken Raider / Death Star Trooper / Garouf Lafoe (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90350.jpg" />
+<Role id="7054" filter="actor=7054" tag="Warwick Diamond" tagKey="5d776825880197001ec90351" role="Jawa (uncredited)" />
+<Role id="7055" filter="actor=7055" tag="Sadie Eden" tagKey="5d776825880197001ec90352" role="Garindan (uncredited)" />
+<Role id="7056" filter="actor=7056" tag="Kim Falkinburg" tagKey="5d776825880197001ec90353" role="Djas Puhr (uncredited)" />
+<Role id="1248" filter="actor=1248" tag="Harry Fielder" tagKey="5d776825880197001ec90354" role="Death Star Trooper (uncredited)" />
+<Role id="7057" filter="actor=7057" tag="Ted Gagliano" tagKey="5d776825880197001ec90355" role="Stormtrooper with Binoculars (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90355.jpg" />
+<Role id="3728" filter="actor=3728" tag="Salo Gardner" tagKey="5d776825880197001ec90356" role="Cantina Patron (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90356.jpg" />
+<Role id="7058" filter="actor=7058" tag="Steve Gawley" tagKey="5d776825880197001ec90357" role="Death Star Trooper (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90357.jpg" />
+<Role id="7059" filter="actor=7059" tag="Barry Gnome" tagKey="5d776825880197001ec90358" role="Kabe (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90358.jpg" />
+<Role id="1706" filter="actor=1706" tag="Rusty Goffe" tagKey="5d776825961905001eb90a6f" role="Kabe / Jawa / GONK Droid (uncredited)" thumb="https://metadata-static.plex.tv/1/people/1de762bbeb20e114e57ceaa1ecbbea5a.jpg" />
+<Role id="7060" filter="actor=7060" tag="Isaac Grand" tagKey="5d776825880197001ec9035a" role="Cantina Patron (uncredited)" />
+<Role id="7061" filter="actor=7061" tag="Reg Harding" tagKey="5d776825880197001ec9035c" role="Stormtrooper (uncredited)" />
+<Role id="7062" filter="actor=7062" tag="Alan Harris" tagKey="5d776cfa7a53e9001e74db3a" role="Leia&#39;s Rebel Escort (uncredited)" thumb="https://metadata-static.plex.tv/a/people/a3733b19e0c376756ada862f61a7a972.jpg" />
+<Role id="7063" filter="actor=7063" tag="Frank Henson" tagKey="5d776825880197001ec9035e" role="Stormtrooper (uncredited)" />
+<Role id="7064" filter="actor=7064" tag="Arthur Howell" tagKey="5d776825880197001ec90360" role="Stormtrooper (uncredited)" />
+<Role id="7065" filter="actor=7065" tag="Tommy Ilsley" tagKey="5d776825880197001ec90361" role="Ponda Baba (uncredited)" />
+<Role id="7066" filter="actor=7066" tag="Joe Johnston" tagKey="5d776825880197001ec90362" role="Spacetrooper / Death Star gunner (uncredited)" thumb="https://metadata-static.plex.tv/8/people/8df51534e528abc856b6182df3481055.jpg" />
+<Role id="7068" filter="actor=7068" tag="Linda Jones" tagKey="5d776825880197001ec90364" role="Chall Bekan (uncredited)" />
+<Role id="7069" filter="actor=7069" tag="Joe Kaye" tagKey="5d776825880197001ec90365" role="Solomohal (uncredited)" />
+<Role id="7070" filter="actor=7070" tag="Colin Michael Kitchens" tagKey="5d776825880197001ec90366" role="Stormtrooper (voice) (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90366.jpg" />
+<Role id="7071" filter="actor=7071" tag="Melissa Kurtz" tagKey="5d776825880197001ec90367" role="Jawa (uncredited)" />
+<Role id="7072" filter="actor=7072" tag="Tiffany Hillkurtz" tagKey="5dcd38108e91170021c69d17" role="Jawa (uncredited)" thumb="https://metadata-static.plex.tv/people/5dcd38108e91170021c69d17.jpg" />
+<Role id="7073" filter="actor=7073" tag="Al Lampert" tagKey="5d776825880197001ec90369" role="Daine Jir (uncredited)" thumb="https://metadata-static.plex.tv/7/people/74a54a0141881e0eee4a33082413e2f7.jpg" />
+<Role id="7074" filter="actor=7074" tag="Anthony Lang" tagKey="5d776825880197001ec9036a" role="BoShek (uncredited)" />
+<Role id="7076" filter="actor=7076" tag="Derek Lyons" tagKey="5d776825880197001ec9036c" role="Temple Guard / Medal Bearer (uncredited)" thumb="https://metadata-static.plex.tv/2/people/2b4e146aeb70a053a4b7cad2aa03ee40.jpg" />
+<Role id="7077" filter="actor=7077" tag="Mahjoub" tagKey="5d776825880197001ec9036d" role="Jawa (uncredited)" />
+<Role id="5831" filter="actor=5831" tag="Alf Mangan" tagKey="5d776825880197001ec9036e" role="Takeel (uncredited)" />
+<Role id="7078" filter="actor=7078" tag="Grant McCune" tagKey="5d776825880197001ec90370" role="Death Star Gunner (uncredited)" />
+<Role id="7079" filter="actor=7079" tag="Geoffrey Moon" tagKey="5d776825880197001ec90371" role="Cantina Patron (uncredited)" />
+<Role id="7080" filter="actor=7080" tag="Mandy Morton" tagKey="5d776825880197001ec90372" role="Swilla Corey (uncredited)" />
+<Role id="6865" filter="actor=6865" tag="Lorne Peterson" tagKey="5d776825880197001ec90373" role="Massassi Base Rebel Scout (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90373.jpg" />
+<Role id="7081" filter="actor=7081" tag="Marcus Powell" tagKey="5d776825961905001eb90a6e" role="Rycar Ryjerd (uncredited)" />
+<Role id="5606" filter="actor=5606" tag="Vincenzo Fiorillo" tagKey="669557cc0cb94cfb494902f9" role="InCom Engineer (uncredited)" />
+<Role id="7082" filter="actor=7082" tag="Pam Rose" tagKey="5d776825880197001ec90376" role="Leesub Sirln (uncredited)" />
+<Role id="6506" filter="actor=6506" tag="George Roubicek" tagKey="5d776825880197001ec90377" role="Cmdr. Praji (Imperial Officer #2 on rebel ship) (uncredited)" thumb="https://metadata-static.plex.tv/f/people/fb7ef71ebfba4d16a96146a5a99cd162.jpg" />
+<Role id="7083" filter="actor=7083" tag="Erica Simmons" tagKey="5d776825880197001ec90378" role="Tawss Khaa (uncredited)" />
+<Role id="7084" filter="actor=7084" tag="Angela Staines" tagKey="5d776825880197001ec90379" role="Senni Tonnika (uncredited)" />
+<Role id="7085" filter="actor=7085" tag="George Stock" tagKey="5d776825880197001ec9037a" role="Cantina Patron (uncredited)" />
+<Role id="7086" filter="actor=7086" tag="Roy Straite" tagKey="5d776825880197001ec9037b" role="Cantina Patron (uncredited)" />
+<Role id="7087" filter="actor=7087" tag="Peter Sturgeon" tagKey="5d776825880197001ec9037c" role="Sai&#39;torr Kal Fas (uncredited)" />
+<Role id="7088" filter="actor=7088" tag="Peter Sumner" tagKey="5d776825880197001ec9037d" role="Lt. Pol Treidum (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec9037d.jpg" />
+<Role id="7089" filter="actor=7089" tag="John Sylla" tagKey="5d776825880197001ec9037e" role="Cantina Voices (voice) (uncredited)" thumb="https://metadata-static.plex.tv/1/people/10903415bef26e49feaa80708b33ebbc.jpg" />
+<Role id="6872" filter="actor=6872" tag="Tom Sylla" tagKey="5d776825880197001ec9037f" role="Massassi Outpost Announcer / Various Voices (voice) (uncredited)" thumb="https://metadata-static.plex.tv/9/people/94c07b60665ea104e6afa6386c54481d.jpg" />
+<Role id="7090" filter="actor=7090" tag="Malcolm Tierney" tagKey="5d776825880197001ec90380" role="Lt. Shann Childsen (uncredited)" thumb="https://metadata-static.plex.tv/d/people/da855ce4b73781a72d03e2ba4fd0963c.jpg" />
+<Role id="7091" filter="actor=7091" tag="Phil Tippett" tagKey="5d776825880197001ec90381" role="Cantina Alien (uncredited)" thumb="https://metadata-static.plex.tv/6/cc68393fae/people/668d345d48508ba82bb36dafb5661902.jpg" />
+<Role id="6634" filter="actor=6634" tag="Burnell Tucker" tagKey="5d776825880197001ec90382" role="Del Goren (uncredited)" thumb="https://metadata-static.plex.tv/a/people/a805d4758a94fa2b4325e7f96c6dd2b2.jpg" />
+<Role id="7092" filter="actor=7092" tag="Morgan Upton" tagKey="5d776825880197001ec90383" role="Stormtrooper (voice) (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90383.jpg" />
+<Role id="7093" filter="actor=7093" tag="Jerry Walter" tagKey="5d776825880197001ec90384" role="Stormtrooper (voice) (uncredited)" />
+<Role id="7094" filter="actor=7094" tag="Hal Wamsley" tagKey="5d776825880197001ec90385" role="Jawa (uncredited)" />
+<Role id="7095" filter="actor=7095" tag="Diana Sadley Way" tagKey="5d776825880197001ec90387" role="Thuku (uncredited)" />
+<Role id="6353" filter="actor=6353" tag="Bill Weston" tagKey="5d776825880197001ec90389" role="Stormtrooper (uncredited)" />
+<Role id="5828" filter="actor=5828" tag="Fred Wood" tagKey="5d776825880197001ec9038b" role="Cantina Patron (uncredited)" />
+<Role id="7096" filter="actor=7096" tag="Colin Higgins" tagKey="5d776825880197001ec9038c" role="Rebel Pilot, Col. Takbright (uncredited)" thumb="https://metadata-static.plex.tv/f/people/faaa3097b69b72472a553e8ad977d398.jpg" />
+<Role id="5451" filter="actor=5451" tag="Ron Tarr" tagKey="5d776825880197001ec9038d" role="Jabba&#39;s Henchman (uncredited)" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec9038d.jpg" />
+<Role id="6486" filter="actor=6486" tag="Anthony Forrest" tagKey="5d7768be431c830024c150c6" role="Sandtrooper / Fixer (uncredited)" thumb="https://metadata-static.plex.tv/c/people/c16e47949ddf635b18a6be08755f9db1.jpg" />
+<Role id="7098" filter="actor=7098" tag="John Cannon" tagKey="5d77682a880197001ec9190a" role="Stormtrooper (uncredited)" thumb="https://metadata-static.plex.tv/4/people/407837fe25030a562949456f9a4c1388.jpg" />
+<Role id="7099" filter="actor=7099" tag="Larry Ward" tagKey="5d776825880197001ec90386" role="Greedo (voice) (uncredited)" />
+<Role id="31086" filter="actor=31086" tag="Eddie Eddon" tagKey="5f3fa58ebf3e560040ae3f70" role="Pello Scrambas (uncredited)" />
+<Role id="6863" filter="actor=6863" tag="Rick McCallum" tagKey="5d776825880197001ec9036f" role="Stormtrooper (uncredited)" thumb="https://metadata-static.plex.tv/f/people/f23ae98b29ea84aefb88d45851076b28.jpg" />
+<Role id="40470" filter="actor=40470" tag="Steve Williams" tagKey="5d776825880197001ec9038a" role="Mos Eisley Citizen (uncredited)" />
+<Role id="52263" filter="actor=52263" tag="Ian Selby" tagKey="5d776d1947dd6e001f6f00ad" role="General Hurst Romodi (uncredited)" />
+<Producer id="7100" filter="producer=7100" tag="Gary Kurtz" tagKey="5d776825880197001ec90324" thumb="https://metadata-static.plex.tv/people/5d776825880197001ec90324.jpg" />
+<CommonSenseMedia id="30816" oneLiner="Strong sci-fi violence, threat in George Lucas classic.">
+<AgeRating type="official" rating="4" age="8" />
+</CommonSenseMedia>
+</Video>
+</MediaContainer>

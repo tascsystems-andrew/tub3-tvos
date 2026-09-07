@@ -1,0 +1,60 @@
+name: Tub3
+options:
+  bundleIdPrefix: com.tascsystems
+  deploymentTarget:
+    tvOS: "18.0"
+    iOS: "18.0"
+packages:
+  Tub3Core:
+    path: Core
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # The team is the certificate's OU, not the id in its common name. The CN reads
+    # "Apple Development: andrew sanche (2X2JM87R7W)" and that parenthetical is the
+    # certificate's own identifier — signing with it fails.
+    DEVELOPMENT_TEAM: 32CZP96PT9
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Tub3TV:
+    type: application
+    platform: tvOS
+    sources: [Shared, Apps/TV]
+    dependencies:
+      - package: Tub3Core
+        product: Tub3Core
+    info:
+      path: Apps/TV/Info.plist
+      properties:
+        CFBundleDisplayName: 8008TUB3
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+  Tub3Phone:
+    type: application
+    platform: iOS
+    sources: [Shared, Apps/Phone]
+    dependencies:
+      - package: Tub3Core
+        product: Tub3Core
+    info:
+      path: Apps/Phone/Info.plist
+      properties:
+        CFBundleDisplayName: 8008TUB3
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3
+        TARGETED_DEVICE_FAMILY: "1,2"
+  Tub3TVUITests:
+    type: bundle.ui-testing
+    platform: tvOS
+    sources: [Tests/TVUITests]
+    dependencies:
+      - target: Tub3TV
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tascsystems.tub3.uitests
+        TEST_TARGET_NAME: Tub3TV
+        GENERATE_INFOPLIST_FILE: YES
