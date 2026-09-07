@@ -45,6 +45,11 @@ public final class Tuner {
 
     public var player: PlayerEngine { engine }
 
+    /// Channel 2's own soundtrack, kept out of the scheduled-playback path entirely.
+    private let music = GuideMusic()
+    /// Fetched once and kept: the playlist changes with the season, not with the minute.
+    private var musicTracks: [URL]?
+
     public init(box: BoxClient, engine: PlayerEngine, clientID: String) {
         self.box = box
         self.engine = engine
@@ -74,8 +79,11 @@ public final class Tuner {
             engine.attach(plex: client)
             // Start on the first real channel rather than the guide, the way a television
             // switched on does not open its menu.
-            let first = channels.first { !$0.isGuide } ?? channels.first
-            if let first { await tune(to: first.channel) }
+            // A channel named on the command line, so a fault on one channel can be
+            // reproduced without someone standing at the television pressing buttons.
+            let forced = UserDefaults.standard.object(forKey: "tub3Channel") as? Int
+            let first = forced ?? (channels.first { !$0.isGuide } ?? channels.first)?.channel
+            if let first { await tune(to: first) }
         } catch {
             state = .broken(error.localizedDescription)
         }
@@ -88,6 +96,8 @@ public final class Tuner {
         current = channel
         let station = channels.first { $0.channel == channel }?.station ?? ""
         state = .tuning(channel: channel, station: station)
+        Diag.log("tune ch\(channel) \(station) gen=\(generation)")
+        if channels.first(where: { $0.channel == channel })?.isGuide != true { music.stop() }
         showBug()
         engine.standDown()
         // Hand back the transcoder we are leaving before asking for another. Plex does not
@@ -134,13 +144,15 @@ public final class Tuner {
         // The guide is a channel exactly as it is on the box: tuning to it shows listings,
         // not a picture, and there is nothing to resolve.
         if now.isGuide {
-            // Nothing plays on the guide, so the previous channel has to actually stop —
+            // No video plays on the guide, so the previous channel has to actually stop —
             // otherwise its audio carries on underneath the listings.
             await engine.stop()
             state = .guideChannel(channel: now.channel, station: now.station)
+            await startGuideMusic(generation: generation)
             await loadGuide(generation: generation)
             return
         }
+        music.stop()
         guard let entry = now.now, !now.isOffAir else {
             state = .slate(channel: now.channel, station: now.station,
                            message: now.error ?? "off air")
@@ -164,6 +176,7 @@ public final class Tuner {
                 if let session = item.session { await plex?.stop(session: session) }
                 return
             }
+            Diag.log("play url=\(item.url.absoluteString) joinAt=\(item.joinAt) playFor=\(item.playFor) session=\(item.session ?? "direct")")
             state = .playing(channel: now.channel, station: now.station,
                              title: entry.displayTitle, contentType: entry.contentType)
             await engine.play(item)
@@ -181,7 +194,11 @@ public final class Tuner {
         guard let channel = current else { return }
         // Only a channel that believes it is showing a picture can fail to show one. A late
         // report about somewhere we have already left is not this channel's problem.
-        guard case .playing = state else { return }
+        guard case .playing = state else {
+            Diag.log("ignored stale failure: \(why)")
+            return
+        }
+        Diag.log("recover ch\(channel): \(why)")
         let station = channels.first { $0.channel == channel }?.station ?? ""
         failures += 1
         state = .slate(channel: channel, station: station, message: why)
@@ -195,6 +212,14 @@ public final class Tuner {
         try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
         guard generation == tuneGeneration else { return }
         await load(channel: channel, generation: generation)
+    }
+
+    private func startGuideMusic(generation: Int) async {
+        if musicTracks == nil { musicTracks = (try? await box.guideMusic()) ?? [] }
+        guard generation == tuneGeneration, let tracks = musicTracks, !tracks.isEmpty else {
+            return
+        }
+        await music.start(tracks)
     }
 
     private func loadGuide(generation: Int) async {

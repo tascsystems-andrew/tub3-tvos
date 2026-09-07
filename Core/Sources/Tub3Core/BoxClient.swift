@@ -56,6 +56,16 @@ public actor BoxClient {
         try await get("api/guide", as: Guide.self)
     }
 
+    /// The tracks the box plays behind its own listings, as absolute URLs on the box.
+    ///
+    /// Absolute here rather than at the call site: the box answers with paths, and the one
+    /// thing that knows where the box is, is the box's client.
+    public func guideMusic() async throws -> [URL] {
+        try await get("api/tv/guide/music", as: MusicList.self).tracks.compactMap {
+            URL(string: $0.url, relativeTo: base)?.absoluteURL
+        }
+    }
+
     public func plexBase() async throws -> URL? {
         struct Info: Decodable { let url: String? }
         guard let raw = try await get("api/tv/plex", as: Info.self).url, !raw.isEmpty else {

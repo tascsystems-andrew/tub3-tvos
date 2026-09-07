@@ -76,12 +76,15 @@ public final class PlayerEngine {
         // moment it handed the URL over, so a failed item left a black screen that never
         // retried and never explained itself.
         guard await waitUntilReady(playerItem) else {
+            Diag.log("not ready: status=\(playerItem.status.rawValue) err=\(playerItem.error?.localizedDescription ?? "none")")
             let why = playerItem.error?.localizedDescription ?? "the stream did not start"
             onFailure?(why)
             return
         }
 
+        Diag.log("ready, seeking to \(item.joinAt)")
         await correctJoinIfNeeded(playerItem, wanted: item.joinAt, isTranscoded: item.session != nil)
+        Diag.log("joined at \(playerItem.currentTime().seconds) rate=\(player.rate)")
         startWatchdog()
     }
 
@@ -110,6 +113,7 @@ public final class PlayerEngine {
                     return
                 }
                 if Date().timeIntervalSince(self.lastProgressAt) > Self.stallLimit {
+                    Diag.log("stall at \(now) rate=\(self.player.rate) waiting=\(item.isPlaybackLikelyToKeepUp)")
                     self.watchdog?.cancel()
                     self.onFailure?("the picture stopped")
                     return
