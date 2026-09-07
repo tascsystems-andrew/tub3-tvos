@@ -16,20 +16,26 @@ public struct GuideChannelView: View {
     let guide: Guide?
     let channel: Int
     let station: String
+    /// When this visit to the guide began. The crawl is measured from here.
+    let startedAt: Date
 
-    public init(guide: Guide?, channel: Int, station: String) {
+    public init(guide: Guide?, channel: Int, station: String, startedAt: Date) {
         self.guide = guide
         self.channel = channel
         self.station = station
+        self.startedAt = startedAt
     }
 
     // The box's own constants, so the two screens agree.
-    private static let rowHeight: CGFloat = 96
+    private static let rowHeight = CGFloat(GuideLayout.rowHeight)
+    /// The band the header owns. Rows start below it and scroll up behind it, exactly as on
+    /// the box, whose header is drawn last and opaque so that departing rows disappear into
+    /// it rather than off the top of the screen.
+    private static let headerHeight = CGFloat(GuideLayout.headerHeight)
     private static let leftWidth: CGFloat = 400
     private static let numberWidth: CGFloat = 90
     private static let columns = 3
     private static let columnSeconds: Double = 1800      // ninety minutes across three
-    private static let scrollRate: CGFloat = 22          // pixels per second, slow on purpose
     private static let showSize: CGFloat = 32
     private static let episodeSize: CGFloat = 24
     private static let nameSize: CGFloat = 30
@@ -66,21 +72,31 @@ public struct GuideChannelView: View {
 
     private func grid(_ guide: Guide) -> some View {
         let win = window(guide)
-        let bodyWidth = 1920 - Self.leftWidth
         let total = CGFloat(guide.rows.count) * Self.rowHeight
 
         return GeometryReader { geo in
+            // Measured, not assumed. This was `1920 - leftWidth`, but the grid sits inside
+            // 40pt of title-safe padding on each side, so the columns were laid out 80pt
+            // wider than the space they had and the right-hand end of the third column fell
+            // off the screen. The box derives its own column width for the same reason and
+            // says so: "Derived, not fixed, so the columns always reach the right edge."
+            let bodyWidth = max(1, geo.size.width - Self.leftWidth)
             // A clock the view can read continuously, so the crawl is a function of time
             // rather than an animation that can drift or be interrupted.
             TimelineView(.animation) { timeline in
-                let elapsed = timeline.date.timeIntervalSince1970 - guide.begin
-                let offset = crawl(elapsed, total)
+                // Since arriving, not since the top of the half hour. Tuning in at 7:17
+                // used to apply seventeen minutes — 22,440 pixels — of scroll before drawing
+                // anything, so the listing opened partway down the dial at a spot that
+                // differed on every visit.
+                let elapsed = timeline.date.timeIntervalSince(startedAt)
+                let offset = CGFloat(GuideLayout.crawlOffset(elapsed: elapsed,
+                                                             totalHeight: Double(total)))
 
                 ZStack(alignment: .topLeading) {
                     // Two copies, so rows scrolling off the top are already coming back in
                     // at the bottom and the loop has no gap.
                     ForEach(0 ..< 2, id: \.self) { copy in
-                        let base = CGFloat(copy) * total - offset
+                        let base = Self.headerHeight + CGFloat(copy) * total - offset
                         VStack(spacing: 0) {
                             ForEach(guide.rows) { row in
                                 self.row(row, win: win, width: bodyWidth)
@@ -90,7 +106,7 @@ public struct GuideChannelView: View {
                         .offset(y: base)
                         // The seam where the listing loops, in the channel numbers' own gold.
                         .overlay(alignment: .top) {
-                            Rectangle().fill(Theme.gold).frame(height: 4).offset(y: base - 4)
+                            Rectangle().fill(Theme.gold).frame(height: 6).offset(y: base - 7)
                         }
                     }
                 }
@@ -101,12 +117,6 @@ public struct GuideChannelView: View {
             }
         }
         .padding(.horizontal, 40)
-    }
-
-    /// How far the listing has crawled, wrapped to one full pass.
-    private func crawl(_ elapsed: Double, _ total: CGFloat) -> CGFloat {
-        guard total > 0, elapsed > 0 else { return 0 }
-        return CGFloat(elapsed * Double(Self.scrollRate)).truncatingRemainder(dividingBy: total)
     }
 
     private func nowLine(_ guide: Guide, win: (begin: Double, span: Double),
@@ -172,10 +182,10 @@ public struct GuideChannelView: View {
             }
             // Belt and braces against the same trap: the header is furniture at the top of the
             // grid, and it should be exactly as tall as its contents whatever it is placed in.
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(height: Self.headerHeight, alignment: .top)
             .background(Color(red: 0.071, green: 0.055, blue: 0.043))
         }
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(height: Self.headerHeight, alignment: .top)
     }
 
     private func row(_ row: GuideRow, win: (begin: Double, span: Double),

@@ -28,6 +28,20 @@ public final class Tuner {
     /// Listings for the guide channel, fetched when it is tuned rather than on launch —
     /// most viewings never open it.
     public private(set) var guide: Guide?
+    /// When this visit to the guide began.
+    ///
+    /// The crawl is measured from here, the way the box measures it from `Guide._started` —
+    /// a fresh object built by `_tune_guide` on every tune. Not from the payload's `begin`,
+    /// which is the top of the current half hour: arriving at 7:17 would then apply seventeen
+    /// minutes of scroll before drawing anything, opening the listing at a different place
+    /// every time. Set on arrival only, so a refetch does not jerk the crawl.
+    public private(set) var guideStartedAt = Date()
+    /// How often the listings are refetched while the guide is on screen. The box rebuilds
+    /// its rows on `GUIDE_ROWS_TTL = 20.0` and recomputes the window every frame, so its
+    /// columns roll over at the half hour and finished programmes fall off. Fetching once per
+    /// tune, as this did, left the grid frozen at the moment you arrived.
+    static let guideRefresh: UInt64 = 20_000_000_000
+    private var guidePoll: Task<Void, Never>?
 
     private let box: BoxClient
     private var plex: PlexClient?
@@ -109,7 +123,11 @@ public final class Tuner {
         let station = channels.first { $0.channel == channel }?.station ?? ""
         state = .tuning(channel: channel, station: station)
         Diag.log("tune ch\(channel) \(station) gen=\(generation)")
-        if channels.first(where: { $0.channel == channel })?.isGuide != true { music.stop() }
+        if channels.first(where: { $0.channel == channel })?.isGuide != true {
+            music.stop()
+            guidePoll?.cancel()
+            guidePoll = nil
+        }
         showBug()
         engine.standDown()
         // Hand back the transcoder we are leaving before asking for another. Plex does not
@@ -159,9 +177,11 @@ public final class Tuner {
             // No video plays on the guide, so the previous channel has to actually stop —
             // otherwise its audio carries on underneath the listings.
             await engine.stop()
+            if case .guideChannel = state {} else { guideStartedAt = Date() }
             state = .guideChannel(channel: now.channel, station: now.station)
             await startGuideMusic(generation: generation)
             await loadGuide(generation: generation)
+            keepGuideFresh(generation: generation)
             return
         }
         music.stop()
@@ -239,8 +259,25 @@ public final class Tuner {
         await music.start(tracks)
     }
 
+    /// Keep asking the box what is on, for as long as the guide is the channel.
+    ///
+    /// `/api/guide` recomputes `begin` from the current half hour on every request, so this
+    /// alone rolls the columns, the slot geometry and the now-line over — no arithmetic in
+    /// the view has to know about the passage of time.
+    private func keepGuideFresh(generation: Int) {
+        guidePoll?.cancel()
+        guidePoll = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: Tuner.guideRefresh)
+                guard let self, generation == self.tuneGeneration else { return }
+                await self.loadGuide(generation: generation)
+            }
+        }
+    }
+
     private func loadGuide(generation: Int) async {
         guard let listings = try? await box.guide(), generation == tuneGeneration else { return }
+        Diag.log("guide refreshed: begin=\(Int(listings.begin)) rows=\(listings.rows.count)")
         guide = listings
     }
 

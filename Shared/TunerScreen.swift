@@ -20,7 +20,8 @@ public struct TunerScreen: View {
             case .slate(let channel, let station, let message):
                 SlateView(channel: channel, station: station, message: message)
             case .guideChannel(let channel, let station):
-                GuideChannelView(guide: tuner.guide, channel: channel, station: station)
+                GuideChannelView(guide: tuner.guide, channel: channel, station: station,
+                                 startedAt: tuner.guideStartedAt)
             case .tuning(let channel, let station):
                 SlateView(channel: channel, station: station, message: "tuning…")
             case .playing:

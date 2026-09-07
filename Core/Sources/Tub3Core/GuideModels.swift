@@ -47,6 +47,32 @@ public enum GuideLayout {
         min(max((guide.now - guide.begin) / guide.span, 0), 1)
     }
 
+    /// The box's own layout numbers, so the two screens agree by construction.
+    /// `tuner/guide.py`: ROW_H, HEADER_H, SCROLL_PX_PER_SEC.
+    public static let rowHeight: Double = 96
+    /// The band the header occupies. Rows begin below it and scroll up behind it — the box
+    /// draws its header last and opaque for exactly that reason.
+    public static let headerHeight: Double = 300
+    public static let scrollRate: Double = 22
+
+    /// How far the listing has crawled, wrapped to one full pass.
+    ///
+    /// `elapsed` is measured from the moment the channel was tuned, not from the top of the
+    /// half hour: the box builds a fresh `Guide` per tune and measures from that, so channel
+    /// 2 always opens on the first channel of the dial and crawls from there. Anchoring to
+    /// the half hour instead opened the listing at a different place on every visit.
+    public static func crawlOffset(elapsed: Double, totalHeight: Double,
+                                   rate: Double = scrollRate) -> Double {
+        guard totalHeight > 0, elapsed > 0 else { return 0 }
+        return (elapsed * rate).truncatingRemainder(dividingBy: totalHeight)
+    }
+
+    /// Where a row sits, in the same terms the box uses:
+    /// `y = HEADER_H + index * ROW_H - offset + repeat * total_h`
+    public static func rowY(index: Int, copy: Int, offset: Double, totalHeight: Double) -> Double {
+        headerHeight + Double(index) * rowHeight - offset + Double(copy) * totalHeight
+    }
+
     /// Column headings on the half hour, which is what broadcast guides use.
     public static func timeMarks(_ guide: Guide, every seconds: Double = 1800) -> [Double] {
         var marks: [Double] = []
