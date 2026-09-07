@@ -28,6 +28,11 @@ public final class Tuner {
     /// Listings for the guide channel, fetched when it is tuned rather than on launch —
     /// most viewings never open it.
     public private(set) var guide: Guide?
+    /// What is on, for the channel bug's bottom-right block. The box reads the same
+    /// thing out of the airing it just opened; the state enum deliberately does not
+    /// carry it, because "how much is left" changes every second and the state should
+    /// not churn for something only the ident reads.
+    public private(set) var nowEntry: NowEntry?
     /// When this visit to the guide began.
     ///
     /// The crawl is measured from here, the way the box measures it from `Guide._started` —
@@ -186,6 +191,7 @@ public final class Tuner {
         }
         music.stop()
         guard let entry = now.now, !now.isOffAir else {
+            nowEntry = nil
             state = .slate(channel: now.channel, station: now.station,
                            message: now.error ?? "off air")
             await retry(channel: now.channel, after: 15, generation: generation)
@@ -213,6 +219,7 @@ public final class Tuner {
             state = .playing(channel: now.channel, station: now.station,
                              title: entry.displayTitle, contentType: entry.contentType)
             playingDirect = item.session == nil
+            nowEntry = entry
             if await engine.play(item) { failures = 0 }
         } catch {
             state = .slate(channel: now.channel, station: now.station,

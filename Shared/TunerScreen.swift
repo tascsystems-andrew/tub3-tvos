@@ -31,16 +31,12 @@ public struct TunerScreen: View {
             // The bug stays in the view tree and only its opacity changes. Removing it would
             // also remove it from the accessibility tree, and that tree is the only way a
             // test can read which channel is tuned.
-            if case .playing(let channel, let station, _, _) = tuner.state {
-                VStack {
-                    HStack {
-                        Spacer()
-                        ChannelBugView(channel: channel, station: station)
-                            .padding(.top, 40).padding(.trailing, 56)
-                    }
-                    Spacer()
-                }
-                .opacity(tuner.bugVisible ? 1 : 0)
+            if case .playing(let channel, let station, let title, _) = tuner.state {
+                // Full frame: the bug places its own two blocks, top right and bottom right,
+                // because that separation is the whole design and not this screen's business.
+                ChannelBugView(channel: channel, station: station, title: title,
+                               remaining: tuner.nowEntry?.remainingSeconds ?? 0)
+                    .opacity(tuner.bugVisible ? 1 : 0)
             }
 
             if showingDial {
