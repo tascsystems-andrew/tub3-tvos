@@ -45,6 +45,19 @@ public enum BoxDiscovery {
         browser.browseResultsChangedHandler = { results, _ in
             Task { await found.note(results) }
         }
+        // The state handler is the only place Local Network privacy shows itself: a refusal
+        // arrives as `.waiting` or `.failed` on the browser, never as an empty result, so
+        // without this a device that has been told no looks exactly like a network with no
+        // box on it. The Simulator does not enforce that gate at all, which is precisely why
+        // this cannot be checked there.
+        browser.stateUpdateHandler = { state in
+            switch state {
+            case .waiting(let why): Diag.log("discovery waiting: \(why)")
+            case .failed(let why): Diag.log("discovery failed: \(why)")
+            case .ready: Diag.log("discovery browsing for \(serviceType)")
+            default: break
+            }
+        }
         browser.start(queue: .global(qos: .userInitiated))
         try? await Task.sleep(for: timeout)
         browser.cancel()
@@ -53,7 +66,10 @@ public enum BoxDiscovery {
         for endpoint in await found.endpoints() {
             if let box = await resolve(endpoint) { boxes.append(box) }
         }
-        return boxes.sorted { $0.name < $1.name }
+        let sorted = boxes.sorted { $0.name < $1.name }
+        Diag.log("discovery found \(sorted.count): "
+                 + sorted.map(\.url.absoluteString).joined(separator: " "))
+        return sorted
     }
 
     /// Turn a service endpoint into something URLSession can be handed.

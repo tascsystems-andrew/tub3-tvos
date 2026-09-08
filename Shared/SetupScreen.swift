@@ -122,6 +122,7 @@ struct SetupScreen: View {
     }
 
     private func search() async {
+        Diag.log("setup: looking for a box")
         searching = true
         problem = nil
         found = await BoxDiscovery.find()
@@ -137,9 +138,11 @@ struct SetupScreen: View {
             // Ask before committing. A box that advertises and does not answer is a worse
             // outcome than one that was never found, because it is remembered.
             guard await BoxDiscovery.looksLikeABox(url) else {
+                Diag.log("setup: \(url.absoluteString) did not answer")
                 problem = "Nothing answered at \(url.host ?? url.absoluteString)."
                 return
             }
+            Diag.log("setup: chose \(url.absoluteString)")
             onChosen(url)
         }
     }
