@@ -6,6 +6,7 @@ import AVFoundation
 ///   TUB3_BOX=http://yourbox:8008 swift test --package-path Core --filter LiveAmbianceProbe
 final class LiveAmbianceProbe: XCTestCase {
     func testAmbianceActuallyPlays() async throws {
+        try LiveTarget.required()
         let box = BoxClient(base: LiveTarget.box)
         let now = try await box.now(channel: 13)
         guard let entry = now.now else { return XCTFail("box had nothing on channel 13") }

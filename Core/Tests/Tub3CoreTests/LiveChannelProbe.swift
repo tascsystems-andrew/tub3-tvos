@@ -8,6 +8,7 @@ import AVFoundation
 @MainActor
 final class LiveChannelProbe: XCTestCase {
     func testChannelsPlay() async throws {
+        try LiveTarget.required()
         let channels = [12, 13]
         let box = BoxClient(base: LiveTarget.box)
         guard let base = try await box.plexBase() else { return XCTFail("no plex base") }

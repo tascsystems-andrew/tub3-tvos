@@ -7,13 +7,15 @@ final class GuideTests: XCTestCase {
 
     func testTuningToTheGuideShowsListings() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-tub3Mute"]
+        app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
         app.launch()
 
-        let bug = app.staticTexts["tub3.channel.number"]
+        let bug = app.staticTexts["tub3.channel.tuned"]
         XCTAssertTrue(bug.waitForExistence(timeout: 40), "never tuned at all")
 
-        // Down from the first channel lands on the guide.
+        // Down from channel 3 lands on the guide. The channel is pinned because the
+        // app opens on the *ambiance* channel, which is 13 — down from there is 12,
+        // and this test spent its life pressing down into the middle of the dial.
         XCUIRemote.shared.press(.down)
 
         let guide = app.otherElements["tub3.guide"]

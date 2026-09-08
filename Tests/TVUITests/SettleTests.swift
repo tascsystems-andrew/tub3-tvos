@@ -14,7 +14,7 @@ final class SettleTests: XCTestCase {
 
     func testABurstOfPressesOpensOneChannel() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-tub3Mute", "-tub3Trace"]
+        app.launchArguments += Harness.quiet + ["-tub3Trace"]
         app.launch()
 
         let label = app.staticTexts["tub3.channel.number"]

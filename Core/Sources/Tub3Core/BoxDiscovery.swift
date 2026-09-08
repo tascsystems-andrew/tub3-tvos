@@ -60,6 +60,22 @@ public enum BoxDiscovery {
     ///
     /// A browse result names a service; it does not carry an address. Opening a connection is
     /// what resolves it, and `currentPath.remoteEndpoint` is where the answer arrives.
+    /// Does something at this address actually behave like a box?
+    ///
+    /// `/api/tv/channels` is the cheapest endpoint that proves tub3-ness, and its own client
+    /// method already exists. Deliberately not `/api/status`, which calls the NAS with a
+    /// ten-second timeout and walks the commercials folder.
+    ///
+    /// Its own short-timeout session, because `.shared` waits a full minute on a dead address
+    /// — which on a television is indistinguishable from a frozen app.
+    public static func looksLikeABox(_ url: URL, timeout: TimeInterval = 3) async -> Bool {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = timeout
+        config.timeoutIntervalForResource = timeout
+        let client = BoxClient(base: url, session: URLSession(configuration: config))
+        return ((try? await client.channels()) ?? []).isEmpty == false
+    }
+
     static func resolve(_ endpoint: NWEndpoint, timeout: Duration = .seconds(3)) async -> FoundBox? {
         guard case let .service(name, _, _, _) = endpoint else { return nil }
         let connection = NWConnection(to: endpoint, using: .tcp)
@@ -77,10 +93,7 @@ public enum BoxDiscovery {
         guard case let .hostPort(host, port)? = connection.currentPath?.remoteEndpoint else {
             return nil
         }
-        var text = "\(host)"
-        // A scoped IPv6 address arrives as "fe80::1%en0", which is not a URL host. The zone
-        // is meaningful to the kernel and meaningless to URLSession.
-        if let percent = text.firstIndex(of: "%") { text = String(text[..<percent]) }
+        let text = BoxAddress.stripZone("\(host)")
         let bracketed = text.contains(":") ? "[\(text)]" : text
         guard let url = URL(string: "http://\(bracketed):\(port.rawValue)") else { return nil }
         return FoundBox(name: name, url: url)

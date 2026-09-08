@@ -72,6 +72,13 @@ public struct GuideChannelView: View {
                 waitingHeader
             }
         }
+        // `.contain`, and it has to be here: an identifier on a bare stack attaches to
+        // nothing, because SwiftUI only makes an element out of a container when it is told
+        // to. So `tub3.guide` was never in the tree, and a test asserting the guide had come
+        // up failed against a guide that was plainly on screen — the fallback text search in
+        // `GuideTests` was passing at the same moment. `.contain` rather than `.combine`
+        // keeps every row separately queryable, which is what the row assertions read.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("tub3.guide")
     }
 

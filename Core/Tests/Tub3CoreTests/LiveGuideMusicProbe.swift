@@ -7,6 +7,7 @@ import AVFoundation
 @MainActor
 final class LiveGuideMusicProbe: XCTestCase {
     func testGuideMusicPlays() async throws {
+        try LiveTarget.required()
         let box = BoxClient(base: LiveTarget.box)
         let tracks = try await box.guideMusic()
         print("PROBE tracks:", tracks.map(\.absoluteString))

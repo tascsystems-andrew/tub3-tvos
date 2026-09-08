@@ -1,6 +1,9 @@
 # Every command an agent should ever need. No Xcode GUI anywhere.
 SIM_TV  := platform=tvOS Simulator,name=Apple TV 4K (3rd generation)
 SCHEME  := Tub3TV
+# The box the UI tests point the app at. `TEST_RUNNER_` is xcodebuild's own prefix for
+# variables it forwards into the test runner; it strips it on the way in.
+BOX     ?= http://boobtube.local:8008
 
 .PHONY: gen core tv run clean
 gen:                       ## regenerate the project after a source-layout change
@@ -19,7 +22,7 @@ tv: gen                    ## build the tvOS app for the simulator
 uitest: gen               ## remote input, the strip, the guide — muted
 	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
 	  -destination '$(SIM_TV)' -derivedDataPath build build-for-testing >/dev/null
-	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
+	TEST_RUNNER_TUB3_BOX=$(BOX) xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
 	  -destination '$(SIM_TV)' -derivedDataPath build test-without-building \
 	  | grep -E '^Test Case .*(passed|failed)'
 

@@ -5,8 +5,14 @@ import Tub3Core
 public struct TunerScreen: View {
     @State private var tuner: Tuner
     @State private var showingDial = false
+    /// A route back to the box picker. Nil in the previews and the Core tests, where there
+    /// is nothing to go back to.
+    private let onChangeBox: (() -> Void)?
 
-    public init(tuner: Tuner) { _tuner = State(initialValue: tuner) }
+    public init(tuner: Tuner, onChangeBox: (() -> Void)? = nil) {
+        _tuner = State(initialValue: tuner)
+        self.onChangeBox = onChangeBox
+    }
 
     public var body: some View {
         ZStack {
@@ -15,6 +21,8 @@ public struct TunerScreen: View {
             switch tuner.state {
             case .idle:
                 ProgressView().tint(Theme.gold)
+            case .standby(let headline, let detail, let address):
+                StandbyCard(headline: headline, detail: detail, address: address)
             case .broken(let why):
                 SlateView(channel: 0, station: "8008TUB3", message: why)
             case .slate(let channel, let station, let message):
@@ -32,9 +40,21 @@ public struct TunerScreen: View {
                 PlayerLayerView(player: tuner.player.player).ignoresSafeArea()
             }
 
-            // The bug stays in the view tree and only its opacity changes. Removing it would
-            // also remove it from the accessibility tree, and that tree is the only way a
-            // test can read which channel is tuned.
+            // What is tuned, always, drawn nowhere.
+            //
+            // The bug cannot carry this. It fades to nothing four seconds after tuning, and
+            // UIKit drops a view at zero alpha out of the accessibility tree altogether — so
+            // "wait for a channel number" found nothing whenever tuning took longer than
+            // that window, which on a cold launch it routinely does. Three tests failed that
+            // way and every one of them blamed the tuner, which had in fact tuned. A hair
+            // above zero keeps it in the tree and off the screen.
+            Text(tuner.current.map { String(format: "%02d", $0) } ?? "")
+                .accessibilityIdentifier("tub3.channel.tuned")
+                .frame(width: 1, height: 1)
+                .opacity(0.02)
+
+            // The bug's own identifier stays on the bug, because what it is for is asserting
+            // that the ident was *drawn* — which is a different question from what is tuned.
             switch tuner.state {
             case .playing(let channel, let station, let title, _):
                 // Full frame: the bug places its own two blocks, top right and bottom right,
@@ -86,7 +106,18 @@ public struct TunerScreen: View {
             default: break
             }
         }
-        .onPlayPauseCommand { withAnimation { showingDial.toggle() } }
+        .onPlayPauseCommand {
+            // With no channels there is no strip to open, and the button would do nothing at
+            // all — which on a screen already saying "no signal" reads as a dead remote. So
+            // it goes back to the picker instead: the cheapest correct gesture out of a
+            // wrong or stale address, and the only one, since Menu deliberately leaves the
+            // app rather than being swallowed here.
+            if tuner.channels.isEmpty, let onChangeBox {
+                onChangeBox()
+            } else {
+                withAnimation { showingDial.toggle() }
+            }
+        }
         // Menu closes the strip. Deliberately not swallowed when the strip is already shut,
         // so Menu still leaves the app — one that cannot be exited is a broken tvOS app.
         .onExitCommand {

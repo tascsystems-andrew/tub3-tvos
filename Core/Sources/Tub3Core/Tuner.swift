@@ -9,6 +9,13 @@ public enum TunerState: Equatable, Sendable {
     case guideChannel(channel: Int, station: String)
     /// A caption rather than a picture: off air, or a file Plex cannot identify.
     case slate(channel: Int, station: String, message: String)
+    /// Reached the box, and it is not finished being set up.
+    ///
+    /// Deliberately not `.broken`: nothing is wrong, and "no signal" is a lie that sends
+    /// someone looking at their network when the answer is a form on the box's own web page.
+    /// This is the likeliest state a brand new box is ever in, because Plex is configured
+    /// after the box first boots and not before.
+    case standby(headline: String, detail: String, address: String)
     case broken(String)
 }
 
@@ -100,12 +107,20 @@ public final class Tuner {
         }
     }
 
-    public func start() async {
+    public func start() async { await start(retrying: true) }
+
+    private func start(retrying: Bool) async {
         do {
             channels = try await box.channels()
             guard let base = try await box.plexBase() else {
-                state = .broken("no signal")
+                state = .standby(headline: "Almost there",
+                                 detail: "This box has no Plex server yet.",
+                                 address: box.base.absoluteString)
                 Diag.log("plex is not configured on the box")
+                // And ask again, because someone is very likely filling that form in right
+                // now on a laptop, and walking back to the television to find it still
+                // saying the same thing is how a person concludes it did not work.
+                if retrying { await retryStart(after: 10) }
                 return
             }
             plexBase = base
@@ -134,6 +149,46 @@ public final class Tuner {
         } catch {
             Diag.log("box unreachable: \(error.localizedDescription)")
             state = .broken("no signal")
+            guard retrying else { return }
+            // A box that is still booting is the ordinary case, not the exceptional one: the
+            // television and the Pi come on at the same moment when both are on the same
+            // power strip, and the app always won that race. Nothing retried out of here, so
+            // the first thing anyone saw was a fault card that stayed up all evening.
+            await retryStart(after: 5)
+        }
+    }
+
+    /// Backs off 5s → 10s → 20s → 40s → 60s and then stays at a minute, forever.
+    ///
+    /// Forever is the point. This is an appliance on a shelf and there is no one to press a
+    /// button: it has to be still trying whenever the box comes back, an hour later or in the
+    /// morning. `startGeneration` makes a later `start()` — someone choosing a different box —
+    /// abandon an older ladder rather than have two of them tuning over each other.
+    private var startGeneration = 0
+    private func retryStart(after seconds: Double) async {
+        startGeneration += 1
+        let generation = startGeneration
+        // Inherits the main actor, so `startGeneration` and `state` below are read on the
+        // same actor that writes them and no lock is involved.
+        Task { [weak self] in
+            var wait = seconds
+            while true {
+                try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+                guard let self, self.startGeneration == generation else { return }
+                guard self.stillWaiting else { return }   // recovered by some other route
+                // `retrying: false`, so this attempt does not arm a second ladder beneath
+                // the one already running.
+                await self.start(retrying: false)
+                guard self.startGeneration == generation, self.stillWaiting else { return }
+                wait = min(wait * 2, 60)
+            }
+        }
+    }
+
+    private var stillWaiting: Bool {
+        switch state {
+        case .broken, .standby, .idle: true
+        default: false
         }
     }
 

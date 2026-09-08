@@ -5,12 +5,12 @@ import XCTest
 final class DialTests: XCTestCase {
 
     private enum ID {
-        static let channelNumber = "tub3.channel.number"
+        static let channelNumber = "tub3.channel.tuned"
     }
 
     private func launched() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments += ["-tub3Mute"]
+        app.launchArguments += Harness.quiet
         app.launch()
         return app
     }

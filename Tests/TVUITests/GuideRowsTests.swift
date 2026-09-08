@@ -6,11 +6,12 @@ import XCTest
 final class GuideRowsTests: XCTestCase {
     func testGuideShowsChannelRowsNotJustChrome() {
         let app = XCUIApplication()
-        app.launchArguments += ["-tub3Mute"]
+        app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["tub3.channel.number"].waitForExistence(timeout: 40))
-        XCUIRemote.shared.press(.down)                       // ch3 -> ch2, the guide
+        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        XCUIRemote.shared.press(.down)                       // ch3 -> ch2, the guide,
+                                                             // which -tub3Channel pinned
         XCTAssertTrue(app.otherElements["tub3.guide"].waitForExistence(timeout: 25))
 
         // The clock is chrome and was present the whole time the guide was broken.

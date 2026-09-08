@@ -11,7 +11,7 @@ final class SurfTests: XCTestCase {
 
     func testFlipThroughTheDial() throws {
         let app = XCUIApplication()
-        app.launchArguments += ["-tub3Mute"]
+        app.launchArguments += Harness.quiet
         app.launch()
 
         let label = app.staticTexts["tub3.channel.number"]
