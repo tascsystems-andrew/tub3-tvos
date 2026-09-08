@@ -29,10 +29,10 @@ public struct DialOverlay: View {
                             Button { onPick(channel.channel) } label: {
                                 VStack(spacing: 4) {
                                     Text("\(channel.channel)")
-                                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                                        .font(.system(size: 38, weight: .bold, design: .monospaced))
                                         .foregroundStyle(Theme.gold)
                                     Text(channel.station)
-                                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                                        .font(.system(size: 17, weight: .medium, design: .monospaced))
                                         .foregroundStyle(
                                             channel.channel == current ? Theme.gold : Theme.purple)
                                 }

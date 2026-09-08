@@ -175,15 +175,15 @@ public struct GuideChannelView: View {
                 HStack(alignment: .top, spacing: 0) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(station)
-                            .font(.system(size: Self.networkSize, weight: .bold, design: .rounded))
+                            .font(.system(size: Self.networkSize, weight: .bold, design: .monospaced))
                             .foregroundStyle(Theme.gold)
                         Text(Self.dateLine.string(from: tick.date))
-                            .font(.system(size: Self.dateSize, design: .rounded))
+                            .font(.system(size: Self.dateSize, design: .monospaced))
                             .foregroundStyle(Theme.dim)
                     }
                     Spacer(minLength: 0)
                     Text(Self.wallClock.string(from: tick.date))
-                        .font(.system(size: Self.networkSize, weight: .bold, design: .rounded))
+                        .font(.system(size: Self.networkSize, weight: .bold, design: .monospaced))
                         .foregroundStyle(Theme.purple)
                         .accessibilityIdentifier("tub3.guide.clock")
                 }
@@ -199,7 +199,7 @@ public struct GuideChannelView: View {
                         ForEach(0 ..< Self.columns, id: \.self) { column in
                             let at = win.begin + Double(column) * Self.columnSeconds
                             Text(Self.columnClock.string(from: Date(timeIntervalSince1970: at)))
-                                .font(.system(size: Self.slotSize, weight: .bold, design: .rounded))
+                                .font(.system(size: Self.slotSize, weight: .bold, design: .monospaced))
                                 .foregroundStyle(Theme.gold)
                                 .padding(.horizontal, 16)
                                 .frame(width: width / CGFloat(Self.columns) - 6,
@@ -227,11 +227,11 @@ public struct GuideChannelView: View {
         HStack(spacing: 0) {
             HStack(spacing: 10) {
                 Text("\(row.number)")
-                    .font(.system(size: Self.nameSize + 6, weight: .bold, design: .rounded))
+                    .font(.system(size: Self.nameSize + 6, weight: .bold, design: .monospaced))
                     .foregroundStyle(Theme.gold)
                     .frame(width: Self.numberWidth)      // centred in its own sub-column
                 Text(row.name)
-                    .font(.system(size: Self.nameSize, weight: .semibold, design: .rounded))
+                    .font(.system(size: Self.nameSize, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Theme.gold)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -275,12 +275,12 @@ public struct GuideChannelView: View {
         let parts = slot.title.components(separatedBy: " — ")
         return VStack(alignment: .leading, spacing: 2) {
             Text((slot.clipped == true ? "‹ " : "") + (parts.first ?? slot.title))
-                .font(.system(size: Self.showSize, weight: .medium, design: .rounded))
+                .font(.system(size: Self.showSize, weight: .medium, design: .monospaced))
                 .foregroundStyle(.white)
                 .lineLimit(1)
             if parts.count > 1 {
                 Text(parts.dropFirst().joined(separator: " — "))
-                    .font(.system(size: Self.episodeSize, design: .rounded))
+                    .font(.system(size: Self.episodeSize, design: .monospaced))
                     .foregroundStyle(Theme.dim)
                     .lineLimit(1)
             }

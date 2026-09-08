@@ -14,6 +14,18 @@ public enum Theme {
     /// the settings page. `tuner/menu.py` says why it is green rather than amber —
     /// green tubes were far more common on 90s CRTs.
     public static let phosphor = Color(red: 0.2, green: 1.0, blue: 0.333)
+    /// Furniture is monospace, the way the box draws every overlay it has.
+    ///
+    /// Not a stylistic preference on either side. `\fnmonospace` is on the bug, the
+    /// tuning card, the off-air card, the menu and every string in the guide — because
+    /// a channel number that changes width as it counts, or a clock whose colon shifts
+    /// every second, reads as a web page rather than as a television. SF Rounded is a
+    /// friendly UI face; this furniture is imitating a character generator.
+    public static func furniture(_ size: CGFloat,
+                                 _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .monospaced)
+    }
+
     /// The episode line under a programme name, `&HAAAAAA&`.
     public static let bugDetail = Color(red: 0.667, green: 0.667, blue: 0.667)
 }
