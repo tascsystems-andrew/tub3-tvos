@@ -47,6 +47,10 @@ public final class Tuner {
     /// tune, as this did, left the grid frozen at the moment you arrived.
     static let guideRefresh: UInt64 = 20_000_000_000
     private var guidePoll: Task<Void, Never>?
+    /// How often the dial is re-read. `Box.RESCAN` is a minute, for the same reason:
+    /// a channel added while the set is on should appear without restarting anything.
+    static let dialRefresh: UInt64 = 60_000_000_000
+    private var dialPoll: Task<Void, Never>?
     private var settleTask: Task<Void, Never>?
 
     private let box: BoxClient
@@ -96,7 +100,8 @@ public final class Tuner {
         do {
             channels = try await box.channels()
             guard let base = try await box.plexBase() else {
-                state = .broken("Plex is not configured on the box")
+                state = .broken("no signal")
+                Diag.log("plex is not configured on the box")
                 return
             }
             plexBase = base
@@ -121,8 +126,10 @@ public final class Tuner {
                                    ?? channels.first { !$0.isGuide }
                                    ?? channels.first)?.channel
             if let first { await tune(to: first) }
+            keepDialFresh()
         } catch {
-            state = .broken(error.localizedDescription)
+            Diag.log("box unreachable: \(error.localizedDescription)")
+            state = .broken("no signal")
         }
     }
 
@@ -136,6 +143,16 @@ public final class Tuner {
 
     /// A press. Announces the channel immediately and opens it once the pressing stops.
     public func tune(to channel: Int) async {
+        // Already showing this one. Reopening it would drop the Plex session and rejoin the
+        // programme a few seconds later behind a tuning card — the glitch `box._reannounce`
+        // exists to avoid. Say which channel it is instead. Keyed on a picture actually being
+        // up rather than on `current`, because a slate is mid-retry and re-picking it there
+        // means "try again", which is what the box arranges by clearing `_on_air`.
+        if case .playing(let showing, _, _, _) = state, showing == channel {
+            showBug()
+            return
+        }
+        if case .guideChannel(let showing, _) = state, showing == channel { return }
         tuneGeneration += 1
         let generation = tuneGeneration
         failures = 0
@@ -144,12 +161,14 @@ public final class Tuner {
         let station = channels.first { $0.channel == channel }?.station ?? ""
         state = .tuning(channel: channel, station: station)
         Diag.log("tune ch\(channel) \(station) gen=\(generation)")
+        // The outgoing channel's number must not linger over the incoming one; the
+        // ident is re-shown when a picture actually arrives, not when a button moves.
+        bugVisible = false
         if channels.first(where: { $0.channel == channel })?.isGuide != true {
             music.stop()
             guidePoll?.cancel()
             guidePoll = nil
         }
-        showBug()
         engine.standDown()
 
         settleTask?.cancel()
@@ -161,7 +180,7 @@ public final class Tuner {
             // abandoned sessions, so surfing without this buries the server.
             await self.engine.stopCurrentSession()
             guard generation == self.tuneGeneration else { return }
-            await self.load(channel: channel, generation: generation)
+            await self.load(channel: channel, generation: generation, announce: true)
         }
     }
 
@@ -194,25 +213,33 @@ public final class Tuner {
         // stall detection at all — it would simply have kept playing.
         engine.standDown()
         guard let channel = current else { return }
+        // During a tune the in-flight `load` already owns the next item, and on a slate the
+        // pending `retry` does. The box refuses this outright for the same reason.
+        guard case .playing = state else { return }
         tuneGeneration += 1
         await load(channel: channel, generation: tuneGeneration)
     }
 
-    private func load(channel: Int, generation: Int) async {
+    private func load(channel: Int, generation: Int, announce: Bool = false) async {
         do {
             let state = try await box.now(channel: channel)
             guard generation == tuneGeneration else { return }
-            await present(state, generation: generation)
+            await present(state, generation: generation, announce: announce)
         } catch {
             guard generation == tuneGeneration else { return }
-            self.state = .broken(error.localizedDescription)
+            Diag.log("box unreachable: \(error.localizedDescription)")
+            self.state = .broken("no signal")
             // And ask again. A box that is rebooting, or a network that dropped for a moment,
             // used to end the app's evening: nothing retried out of this state.
             await retry(channel: channel, after: 10, generation: generation)
         }
     }
 
-    private func present(_ now: NowPlaying, generation: Int) async {
+    /// - Parameter announce: whether a picture arriving means "you changed channel".
+    ///   False when the schedule simply stepped to the next programme, which is the
+    ///   box's own distinction and what stops the ident popping up at every ad break.
+    private func present(_ now: NowPlaying, generation: Int,
+                         announce: Bool = false) async {
         // The guide is a channel exactly as it is on the box: tuning to it shows listings,
         // not a picture, and there is nothing to resolve.
         if now.isGuide {
@@ -229,9 +256,19 @@ public final class Tuner {
         music.stop()
         guard let entry = now.now, !now.isOffAir else {
             nowEntry = nil
-            state = .slate(channel: now.channel, station: now.station,
-                           message: now.error ?? "off air")
-            await retry(channel: now.channel, after: 15, generation: generation)
+            // The box never puts machine text on the picture. Whatever it said goes to the
+            // trace; the viewer gets the same card a set shows for a channel with nothing on.
+            if let why = now.error { Diag.log("ch\(now.channel) box says: \(why)") }
+            state = .slate(channel: now.channel, station: now.station, message: "off air")
+            // Come back when the block does. A plan that runs a second or two short of its
+            // own end is not a sign-off — the box's blocks are contiguous, so the next one
+            // starts at `block_ends_at` and a set-top box shows that gap as a flicker rather
+            // than a card. A real sign-off carries no block at all and keeps the fifteen.
+            var wait = 15.0
+            if !now.isOffAir, let ends = now.blockEndsAt {
+                wait = min(15.0, max(1.0, ends - now.serverTime + 0.5))
+            }
+            await retry(channel: now.channel, after: wait, generation: generation)
             return
         }
         guard entry.plex != nil else {
@@ -257,7 +294,13 @@ public final class Tuner {
                              title: entry.displayTitle, contentType: entry.contentType)
             playingDirect = item.session == nil
             nowEntry = entry
-            if await engine.play(item) { failures = 0 }
+            if await engine.play(item) {
+                failures = 0
+                // `engine.play` returns true only after the item became ready, which is
+                // this app's `playback-restart`. On a slow tune the old code had already
+                // spent the ident's four seconds before there was anything to identify.
+                if announce { showBug() }
+            }
         } catch {
             state = .slate(channel: now.channel, station: now.station,
                            message: "cannot play this")
@@ -282,7 +325,11 @@ public final class Tuner {
         if playingDirect { avoidDirect = true }
         let station = channels.first { $0.channel == channel }?.station ?? ""
         failures += 1
-        state = .slate(channel: channel, station: station, message: why)
+        // The reason is already in the trace one line above. On screen it is a house
+        // line, because the box refuses to put maintenance text on the picture at all
+        // — a viewer cannot act on "the stream did not start", and a television that
+        // explains its own internals to the room is not the illusion being built.
+        state = .slate(channel: channel, station: station, message: "one moment…")
         await engine.stopCurrentSession()
 
         // Back off a little if it keeps happening, so a channel whose content is genuinely
@@ -316,6 +363,29 @@ public final class Tuner {
     /// `/api/guide` recomputes `begin` from the current half hour on every request, so this
     /// alone rolls the columns, the slot geometry and the now-line over — no arithmetic in
     /// the view has to know about the passage of time.
+    /// Re-read the dial, the way the box does every minute.
+    ///
+    /// Additive, and that is not a nicety. A rebuild truncates and rewrites each station's
+    /// config in place, and the box's own reader skips a file caught mid-write — so a
+    /// wholesale replace would briefly delete channels out from under someone watching one.
+    /// The box merges for exactly this reason; so does this.
+    ///
+    /// Touches neither `current` nor the engine: this changes the dial, not what is playing.
+    private func keepDialFresh() {
+        dialPoll?.cancel()
+        dialPoll = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: Tuner.dialRefresh)
+                guard let self, let fresh = try? await self.box.channels() else { continue }
+                let known = Set(self.channels.map(\.channel))
+                let added = fresh.filter { !known.contains($0.channel) }
+                guard !added.isEmpty else { continue }
+                Diag.log("dial: \(added.count) new channel(s)")
+                self.channels = (self.channels + added).sorted { $0.channel < $1.channel }
+            }
+        }
+    }
+
     private func keepGuideFresh(generation: Int) {
         guidePoll?.cancel()
         guidePoll = Task { [weak self] in
@@ -341,11 +411,20 @@ public final class Tuner {
         }
     }
 
+    /// How long the ident stays up. The box's number.
+    static let bugSeconds: UInt64 = 4_000_000_000
+    private var bugToken = 0
+
     private func showBug() {
+        bugToken += 1
+        let token = bugToken
         bugVisible = true
         Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            try? await Task.sleep(nanoseconds: Tuner.bugSeconds)
             guard let self else { return }
+            // Only if no newer ident has been raised meanwhile, or a quick second
+            // channel change would be un-identified by the first one's timer.
+            guard token == self.bugToken else { return }
             self.bugVisible = false
         }
     }
