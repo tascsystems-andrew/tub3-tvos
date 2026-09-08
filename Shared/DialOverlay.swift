@@ -10,12 +10,16 @@ public struct DialOverlay: View {
     let channels: [Channel]
     let current: Int?
     let onPick: (Int) -> Void
+    let onClose: () -> Void
 
     @FocusState private var focused: Int?
 
-    public init(channels: [Channel], current: Int?, onPick: @escaping (Int) -> Void) {
+    public init(channels: [Channel], current: Int?,
+                onClose: @escaping () -> Void = {},
+                onPick: @escaping (Int) -> Void) {
         self.channels = channels
         self.current = current
+        self.onClose = onClose
         self.onPick = onPick
     }
 
@@ -64,5 +68,24 @@ public struct DialOverlay: View {
             }
         }
         .accessibilityIdentifier("tub3.dial")
+        // The strip's own way out, and it lives here rather than on the tuner screen for a
+        // reason that is not tidiness.
+        //
+        // `.onExitCommand` has no pass-through: it returns Void, with no .ignored/.handled
+        // result, so a handler registered anywhere in the focused view's ancestor chain
+        // consumes the press whatever its closure does. The old placement was on the tuner's
+        // ZStack with `if showingDial { … }` inside the body — a conditional body under an
+        // unconditional registration, which swallowed Menu at the top level too and left the
+        // viewer in an app they could only escape with the TV button. The comment there said
+        // the opposite in good faith, and the one test that pressed Menu did it with the
+        // strip already open, which is the single case that cannot catch it.
+        //
+        // Here there is no handler when there is no overlay, so the press falls through to
+        // UIKit and it takes them home. Correct by construction rather than by promise. It
+        // still fires while a card holds focus because this stack is that card's ancestor,
+        // which is the same mechanism that made the old placement work at all.
+        #if os(tvOS)
+        .onExitCommand(perform: onClose)
+        #endif
     }
 }

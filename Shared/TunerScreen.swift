@@ -71,7 +71,8 @@ public struct TunerScreen: View {
             }
 
             if showingDial {
-                DialOverlay(channels: tuner.channels, current: tuner.current) { picked in
+                DialOverlay(channels: tuner.channels, current: tuner.current,
+                            onClose: { withAnimation { showingDial = false } }) { picked in
                     showingDial = false
                     Task { await tuner.tune(to: picked) }
                 }
@@ -118,11 +119,14 @@ public struct TunerScreen: View {
                 withAnimation { showingDial.toggle() }
             }
         }
-        // Menu closes the strip. Deliberately not swallowed when the strip is already shut,
-        // so Menu still leaves the app — one that cannot be exited is a broken tvOS app.
-        .onExitCommand {
-            if showingDial { withAnimation { showingDial = false } }
-        }
+        // No `.onExitCommand` here, deliberately, and it is worth saying why the obvious
+        // version was wrong. It used to close the strip from this screen with the body
+        // guarded by `if showingDial`, on the belief that leaving the closure empty let the
+        // press through. It does not: registration is what consumes it, not the body. So
+        // Menu was swallowed on the picture as well, and this app could not be left at all —
+        // which is both a trap for whoever is holding the remote and the best-documented
+        // reason Apple rejects a tvOS app. `MenuTests` presses it from the top level now.
+        // The strip carries its own handler, which exists only while the strip does.
         #endif
     }
 }
