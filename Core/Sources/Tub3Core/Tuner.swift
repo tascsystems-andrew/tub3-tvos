@@ -73,7 +73,8 @@ public final class Tuner {
 
     /// Channel 2's own soundtrack, kept out of the scheduled-playback path entirely.
     private let music = GuideMusic()
-    /// Fetched once and kept: the playlist changes with the season, not with the minute.
+    /// Fetched once *successfully* and kept: the playlist changes with the season,
+    /// not with the minute.
     private var musicTracks: [URL]?
 
     public init(box: BoxClient, engine: PlayerEngine, clientID: String) {
@@ -187,6 +188,11 @@ public final class Tuner {
     /// The item's slot is up. Ask what is on now rather than assuming it is `next`: the
     /// answer already accounts for however long the transition actually took.
     private func advance() async {
+        // The watchdog only knows the playhead has stopped; it cannot tell "this item
+        // ended" from "this stream died". Leaving it armed across a boundary let the
+        // outgoing item's clock count against the incoming one, and the box has no
+        // stall detection at all — it would simply have kept playing.
+        engine.standDown()
         guard let channel = current else { return }
         tuneGeneration += 1
         await load(channel: channel, generation: tuneGeneration)
@@ -200,6 +206,9 @@ public final class Tuner {
         } catch {
             guard generation == tuneGeneration else { return }
             self.state = .broken(error.localizedDescription)
+            // And ask again. A box that is rebooting, or a network that dropped for a moment,
+            // used to end the app's evening: nothing retried out of this state.
+            await retry(channel: channel, after: 10, generation: generation)
         }
     }
 
@@ -287,7 +296,15 @@ public final class Tuner {
     }
 
     private func startGuideMusic(generation: Int) async {
-        if musicTracks == nil { musicTracks = (try? await box.guideMusic()) ?? [] }
+        // Only a successful answer is remembered. `?? []` cached the *failure* too, so
+        // one dropped request left channel 2 silent for the life of the app. The box
+        // cannot do that: its playlist is a local folder scan, not a fetch. Retrying on
+        // the next tune to the guide is the right cadence — press 2 again and it is
+        // back — and a periodic refetch would diverge in the other direction, since the
+        // box only re-reads the folder when it restarts.
+        if musicTracks == nil, let fetched = try? await box.guideMusic() {
+            musicTracks = fetched
+        }
         guard generation == tuneGeneration, let tracks = musicTracks, !tracks.isEmpty else {
             return
         }

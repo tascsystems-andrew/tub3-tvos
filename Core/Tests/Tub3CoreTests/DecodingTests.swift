@@ -62,3 +62,20 @@ private func fixture(_ name: String) throws -> Data {
     #expect(ref.partIndex == 0)
     #expect(ref.mediaID == "")
 }
+
+/// The box's per-channel error answer, captured from a request for a channel that is not on
+/// the dial. It carries `error` and `channel` and nothing else — no station name, because the
+/// failure *is* that there is no such channel to name.
+///
+/// This used to be a decoding failure, which the tuner turned into `.broken`, which nothing
+/// retried out of. A fault the box could explain in one sentence therefore bricked the app
+/// until it was relaunched, and the slate-and-retry written for exactly this case never ran.
+@Test func decodesTheBoxsErrorAnswer() throws {
+    let now = try JSONDecoder().decode(NowPlaying.self, from: fixture("now-error.json"))
+    #expect(now.channel == 99)
+    #expect(now.error?.isEmpty == false)
+    // Absent, not required. These defaults are what let the answer through at all.
+    #expect(now.station == "")
+    #expect(now.serverTime == 0)
+    #expect(now.now == nil)
+}

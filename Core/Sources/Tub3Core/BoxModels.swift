@@ -113,6 +113,29 @@ public struct NowPlaying: Codable, Equatable, Sendable {
         case offAir = "off_air"
     }
 
+    /// Lenient about `station` and `serverTime`, strict about everything else.
+    ///
+    /// The box's per-channel error branches answer with `{error, channel}` and little else —
+    /// one of them has no station name to give, because the failure *is* that the channel is
+    /// not on the dial. Requiring those two fields turned every such answer into a decoding
+    /// failure, which the tuner turned into `.broken`, which nothing retries out of. So a
+    /// fault the box could explain in one sentence bricked the app until it was relaunched,
+    /// and the handling written for exactly this case never ran.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        channel = try c.decode(Int.self, forKey: .channel)
+        station = try c.decodeIfPresent(String.self, forKey: .station) ?? ""
+        serverTime = try c.decodeIfPresent(Double.self, forKey: .serverTime) ?? 0
+        blockTitle = try c.decodeIfPresent(String.self, forKey: .blockTitle)
+        blockEndsAt = try c.decodeIfPresent(Double.self, forKey: .blockEndsAt)
+        now = try c.decodeIfPresent(NowEntry.self, forKey: .now)
+        next = try c.decodeIfPresent(NowEntry.self, forKey: .next)
+        map = try c.decodeIfPresent(MapState.self, forKey: .map)
+        offAir = try c.decodeIfPresent(Bool.self, forKey: .offAir)
+        kind = try c.decodeIfPresent(String.self, forKey: .kind)
+        error = try c.decodeIfPresent(String.self, forKey: .error)
+    }
+
     public var isGuide: Bool { kind == "guide" }
     public var isOffAir: Bool { offAir == true }
 }

@@ -20,6 +20,9 @@ public final class GuideMusic {
     private let player = AVQueuePlayer()
     private var endObserver: Any?
     private var tracks: [URL] = []
+    private var keepAlive: Task<Void, Never>?
+    private var lastPlayhead: Double = -1
+    private var lastProgressAt = Date()
 
     public init() {
         if ProcessInfo.processInfo.arguments.contains("-tub3Mute") {
@@ -49,10 +52,62 @@ public final class GuideMusic {
         self.tracks = tracks
         enqueue(from: 0)
         player.play()
+        startKeepAlive()
         Diag.log("guide music from the top: \(tracks[0].lastPathComponent) of \(tracks.count)")
     }
 
+    /// Keep the music going past a track that will not play.
+    ///
+    /// The box cannot lose its music: mpv is handed the whole playlist with `loop-playlist
+    /// inf` and skips anything it cannot open. AVFoundation is fussier — `music_for` accepts
+    /// .ogg, .wma and .flac, and the endpoint serves whatever is in the folder — so one file
+    /// this player will not open used to stop channel 2, and if it was the last track the
+    /// loop never restarted at all.
+    ///
+    /// Polled rather than driven by `AVPlayerItemFailedToPlayToEndTime`, because that
+    /// notification does not fire for an item that never became ready, which is precisely
+    /// what an unsupported format does. Polling catches every failure the same way.
+    ///
+    /// It never reports upward. Silence behind the listings is a disappointment; a fault
+    /// slate over them would be a broken channel, and the listings are the point.
+    private func startKeepAlive() {
+        keepAlive?.cancel()
+        lastPlayhead = -1
+        lastProgressAt = Date()
+        keepAlive = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                guard let self, !self.tracks.isEmpty else { return }
+
+                guard let item = self.player.currentItem else {
+                    // The queue drained — the last track was the unplayable one.
+                    Diag.log("guide music: queue empty, starting the playlist again")
+                    self.enqueue(from: 0)
+                    self.player.play()
+                    self.lastProgressAt = Date()
+                    continue
+                }
+                let now = item.currentTime().seconds
+                if item.status != .failed, now.isFinite, now > self.lastPlayhead + 0.25 {
+                    self.lastPlayhead = now
+                    self.lastProgressAt = Date()
+                    continue
+                }
+                let stuck = Date().timeIntervalSince(self.lastProgressAt) > 6
+                guard item.status == .failed || stuck else { continue }
+                Diag.log("guide music: skipping a track that will not play")
+                self.player.advanceToNextItem()
+                if self.player.currentItem == nil { self.enqueue(from: 0) }
+                self.player.play()
+                self.lastPlayhead = -1
+                self.lastProgressAt = Date()
+            }
+        }
+    }
+
     public func stop() {
+        keepAlive?.cancel()
+        keepAlive = nil
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
