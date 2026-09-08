@@ -64,10 +64,33 @@ public struct GuideChannelView: View {
             if let guide {
                 grid(guide)
             } else {
-                ProgressView().tint(Theme.gold)
+                // A picture first, always — the box's rule, and it applies here more than
+                // anywhere. `tuner/box.py` puts the backdrop up *before* any rows exist and
+                // says why: "a guide with no music must still look like a guide, not like a
+                // failed channel change." A spinner is the one thing the box states it does
+                // not have. So the furniture goes up immediately and the rows fill in.
+                waitingHeader
             }
         }
         .accessibilityIdentifier("tub3.guide")
+    }
+
+    /// The guide's furniture with no listings behind it yet.
+    ///
+    /// The window is synthesised rather than waited for, because it is not a mystery: the
+    /// box's `window()` opens on the current half hour, so the column headings this draws are
+    /// the ones the payload will carry when it arrives.
+    private var waitingHeader: some View {
+        let begin = (Date().timeIntervalSince1970 / Self.columnSeconds).rounded(.down)
+            * Self.columnSeconds
+        return GeometryReader { geo in
+            VStack(spacing: 0) {
+                header(win: (begin, Double(Self.columns) * Self.columnSeconds),
+                       width: max(1, geo.size.width - Self.leftWidth))
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 40)
     }
 
     private func grid(_ guide: Guide) -> some View {
@@ -112,7 +135,7 @@ public struct GuideChannelView: View {
                 }
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 .clipped()
-                .overlay(alignment: .top) { header(guide, win: win, width: bodyWidth) }
+                .overlay(alignment: .top) { header(win: win, width: bodyWidth) }
                 .overlay(alignment: .topLeading) { nowLine(guide, win: win, width: bodyWidth) }
             }
         }
@@ -122,14 +145,25 @@ public struct GuideChannelView: View {
     private func nowLine(_ guide: Guide, win: (begin: Double, span: Double),
                          width: CGFloat) -> some View {
         let f = min(max((Date().timeIntervalSince1970 - win.begin) / win.span, 0), 1)
+        let red = Color(red: 1.0, green: 0.275, blue: 0.275)   // the box's NOW red
         return Rectangle()
-            .fill(Color(red: 1.0, green: 0.275, blue: 0.275))   // the box's NOW red
+            .fill(red)
             .frame(width: 4)
+            // The box runs the line from HEADER_H down and draws its header last, so it never
+            // touches the furniture. Padding does the same job here, by shortening the height
+            // proposed to the rectangle rather than leaving it free.
+            .padding(.top, Self.headerHeight)
+            // The cap. A wider stub at the top makes it read as a marker rather than a stray
+            // rule that happens to be red.
+            .overlay(alignment: .top) {
+                Rectangle().fill(red).frame(width: 15, height: 10)
+                    .offset(y: Self.headerHeight)
+            }
             .offset(x: Self.leftWidth + width * CGFloat(f))
             .allowsHitTesting(false)
     }
 
-    private func header(_ guide: Guide, win: (begin: Double, span: Double),
+    private func header(win: (begin: Double, span: Double),
                         width: CGFloat) -> some View {
         // Same furniture as the box, down to which colour goes where: the network in gold,
         // the wall clock in purple on the right, the date dim beneath the name, and the
@@ -208,15 +242,31 @@ public struct GuideChannelView: View {
                 ForEach(row.slots) { slot in
                     let from = max(slot.start, win.begin)
                     let to = min(slot.end, win.begin + win.span)
-                    if to > from {
-                        let x = CGFloat((from - win.begin) / win.span) * width
-                        let w = CGFloat((to - from) / win.span) * width
-                        slotCell(slot, width: w).offset(x: x)
+                    let w = CGFloat((to - from) / win.span) * width
+                    // Too short to read is worse than absent: a two-word title in a sliver is
+                    // one clipped letter, and it is drawn wider than the time it occupies to
+                    // fit even that. The box drops these outright.
+                    if to > from, w >= width * CGFloat(GuideLayout.minSlotFraction) {
+                        slotCell(slot, width: w)
+                            .offset(x: CGFloat((from - win.begin) / win.span) * width)
                     }
                 }
             }
             .frame(width: width, alignment: .leading)
         }
+        // The row's own band, and the channel column's darker block over it — the two
+        // rectangles the box paints before any text. Without them the grid reads as cells
+        // floating on ink rather than as a printed listing. The 4pt shortfall is the ink
+        // gutter between rows; `.top` keeps it below the row rather than splitting it.
+        .frame(height: Self.rowHeight - 4)
+        .background(alignment: .leading) {
+            Color(red: 0.094, green: 0.129, blue: 0.165)      // &H2A2118&
+                .frame(width: Self.leftWidth - 6)
+        }
+        .background(row.number % 2 == 0
+                    ? Color(red: 0.090, green: 0.102, blue: 0.122)    // &H1F1A17&
+                    : Color(red: 0.063, green: 0.075, blue: 0.090))   // &H171310&
+        .frame(height: Self.rowHeight, alignment: .top)
     }
 
     private func slotCell(_ slot: GuideSlot, width: CGFloat) -> some View {
@@ -236,7 +286,7 @@ public struct GuideChannelView: View {
             }
         }
         .padding(.horizontal, 16)
-        .frame(width: max(20, width), height: Self.rowHeight - 10, alignment: .leading)
+        .frame(width: width, height: Self.rowHeight - 10, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.07)))
     }
 }

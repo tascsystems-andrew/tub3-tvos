@@ -54,6 +54,12 @@ public enum GuideLayout {
     /// draws its header last and opaque for exactly that reason.
     public static let headerHeight: Double = 300
     public static let scrollRate: Double = 22
+    /// The narrowest cell worth drawing, as a fraction of the visible window.
+    ///
+    /// `tuner/guide.py` drops anything under 40px across its 1520px grid — about two
+    /// minutes. A fraction rather than a pixel count because the app draws the same
+    /// grid at other widths, and the box's intent is "too short to read", not "40px".
+    public static let minSlotFraction: Double = 40.0 / 1520.0
 
     /// How far the listing has crawled, wrapped to one full pass.
     ///
