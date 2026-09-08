@@ -22,5 +22,16 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_tub3._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>8008TUB3 looks for your box on this network so you do not have to type its address into a television.</string>
 </dict>
 </plist>

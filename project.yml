@@ -31,6 +31,24 @@ targets:
         # the local network. Declaring it here answers App Store Connect's export-compliance
         # question once, instead of on every build upload.
         ITSAppUsesNonExemptEncryption: false
+        # Finding the box on the network. All three of these fail SILENTLY when absent, which
+        # is why they are together with a note rather than scattered.
+        #
+        # Without NSBonjourServices the browser reports an empty network — no error, no
+        # callback, no permission prompt. It looks exactly like having no box.
+        NSBonjourServices: [_tub3._tcp]
+        # The local-network permission prompt's text. Without it the prompt cannot be shown,
+        # so permission is never granted, so browsing finds nothing — silently again.
+        NSLocalNetworkUsageDescription: >-
+          8008TUB3 looks for your box on this network so you do not have to type its address
+          into a television.
+        # A discovered service resolves to an address, not a name — measured: the box on this
+        # network came back as http://10.0.1.116:8008 rather than boobtube.local. App
+        # Transport Security blocks plain HTTP to an address literal, and the box speaks HTTP.
+        # NSAllowsLocalNetworking permits exactly that and no more: local names and private
+        # ranges. It is not NSAllowsArbitraryLoads, which would permit the whole internet.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         # Point the plist at the build settings rather than repeating the numbers. Without
         # these two lines Info.plist carried a literal "1" and MARKETING_VERSION /
         # CURRENT_PROJECT_VERSION were decoration — a bump would have changed nothing, and
