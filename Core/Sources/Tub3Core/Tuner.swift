@@ -70,6 +70,10 @@ public final class Tuner {
     private var avoidDirect = false
     /// Whether the item now on screen was fetched as a file rather than streamed.
     private var playingDirect = false
+    /// The last answer the box gave, kept for its `next`. A file that will not open is
+    /// indistinguishable from one that ended, and the answer to both is the next thing
+    /// in the plan.
+    private var lastNow: NowPlaying?
     /// Consecutive failures on the current channel, reset whenever a picture arrives.
     private var failures = 0
 
@@ -240,6 +244,7 @@ public final class Tuner {
     ///   box's own distinction and what stops the ident popping up at every ad break.
     private func present(_ now: NowPlaying, generation: Int,
                          announce: Bool = false) async {
+        lastNow = now
         // The guide is a channel exactly as it is on the box: tuning to it shows listings,
         // not a picture, and there is nothing to resolve.
         if now.isGuide {
@@ -310,6 +315,35 @@ public final class Tuner {
 
     /// Something went wrong with the picture. Say what, then go back to the box and ask
     /// again — which is also how a real set-top box behaves when a stream drops.
+    /// Step to the next thing in the plan, the way `_advance_if_ended` does.
+    ///
+    /// A file that will not open and a file that has finished look identical from here, and
+    /// the answer to both is the same: play what comes next. Asking again for the entry that
+    /// just failed holds a caption on screen for the rest of its slot while the television
+    /// beside it has already moved on to the break.
+    ///
+    /// Deliberately called after `avoidDirect` has been set, so the forward step already
+    /// prefers a transcode — the app's direct-to-stream fallback survives, and this adds only
+    /// the box's forward motion on top of it.
+    private func playNextEntry(channel: Int, station: String, generation: Int) async -> Bool {
+        guard let next = lastNow?.next, next.plex != nil,
+              let resolver, let base = plexBase else { return false }
+        // Consumed, not merely read. If the next entry fails too, the payload it came from is
+        // stale and stepping again would offer the same broken file for ever with no backoff
+        // behind it. Dropping it here sends the second failure down the retry path, which
+        // asks the box what is on rather than guessing.
+        lastNow = nil
+        guard let item = try? await resolver.resolve(next, base: base,
+                                                     forceTranscode: avoidDirect),
+              generation == tuneGeneration else { return false }
+        Diag.log("stepping past a file that will not open, to \(next.displayTitle)")
+        state = .playing(channel: channel, station: station,
+                         title: next.displayTitle, contentType: next.contentType)
+        nowEntry = next
+        playingDirect = item.session == nil
+        return await engine.play(item)
+    }
+
     private func recover(from why: String) async {
         guard let channel = current else { return }
         // Only a channel that believes it is showing a picture can fail to show one. A late
@@ -331,6 +365,12 @@ public final class Tuner {
         // explains its own internals to the room is not the illusion being built.
         state = .slate(channel: channel, station: station, message: "one moment…")
         await engine.stopCurrentSession()
+        tuneGeneration += 1
+        if await playNextEntry(channel: channel, station: station,
+                               generation: tuneGeneration) {
+            failures = 0
+            return
+        }
 
         // Back off a little if it keeps happening, so a channel whose content is genuinely
         // broken does not sit in a tight retry loop hammering Plex.
