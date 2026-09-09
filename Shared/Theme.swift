@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// The box's own palette, so the app and the television look like the same channel.
 public enum Theme {
@@ -21,10 +24,35 @@ public enum Theme {
     /// a channel number that changes width as it counts, or a clock whose colon shifts
     /// every second, reads as a web page rather than as a television. SF Rounded is a
     /// friendly UI face; this furniture is imitating a character generator.
+    // `@MainActor` because the scale below reads the window, which is.
+    @MainActor
     public static func furniture(_ size: CGFloat,
                                  _ weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+        .system(size: (size * scale).rounded(), weight: weight, design: .monospaced)
     }
+
+    /// Every furniture size in this app was chosen against a television and then reused,
+    /// unchanged, on a handset. Sizes are quoted at television scale and divided down here.
+    ///
+    /// The wordmark is what made this obvious. "8008TUB3" at 88pt monospace is eight
+    /// characters at roughly 53pt each — about 420pt of text, on a screen 390pt wide — so
+    /// SwiftUI truncated it to "800…" and the app never said its own name anywhere on
+    /// screen. Somebody opening it could not tell what it was.
+    ///
+    /// Against the window's width rather than a per-platform constant, because the same
+    /// build runs on a phone and on an iPad and one number cannot suit both. 900 is the
+    /// width at which these sizes start to look right; anything wider gets them as written,
+    /// which is what keeps the television untouched.
+    @MainActor
+    static let scale: CGFloat = {
+        #if os(tvOS)
+        return 1
+        #else
+        let width = UIScreen.main.bounds.width
+        guard width > 0 else { return 1 }
+        return min(1, width / 900)
+        #endif
+    }()
 
     /// The episode line under a programme name, `&HAAAAAA&`.
     public static let bugDetail = Color(red: 0.667, green: 0.667, blue: 0.667)

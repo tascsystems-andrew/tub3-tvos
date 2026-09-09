@@ -48,10 +48,30 @@ private func fixture(_ name: String) throws -> Data {
 }
 
 @Test func titlesLoseThePoolPrefix() {
+    // The fallback path: a box old enough to send only the pool stem.
     let entry = NowEntry(contentType: "feature", duration: 100, offsetSeconds: 0,
                          remainingSeconds: 100,
-                         title: "movies__Star Wars (1977) WEBDL-1080p", plex: nil)
+                         title: "movies__Star Wars (1977) WEBDL-1080p",
+                         show: nil, episode: nil, plex: nil)
     #expect(entry.displayTitle == "Star Wars (1977) WEBDL-1080p")
+}
+
+@Test func theBoxsOwnTitleWinsOverTheFilename() {
+    // What the box sends now. The filename is still there and must lose to it — this is the
+    // divergence that had the television saying "This Old House" and the app saying
+    // "thisoldhouse__This Old House - S08E08 - The Reading House - 8 WEBDL-1080p".
+    let entry = NowEntry(contentType: "feature", duration: 100, offsetSeconds: 0,
+                         remainingSeconds: 100,
+                         title: "thisoldhouse__This Old House - S08E08 - The Reading House - 8 WEBDL-1080p",
+                         show: "This Old House", episode: "The Reading House - 8", plex: nil)
+    #expect(entry.displayTitle == "This Old House — The Reading House - 8")
+}
+
+@Test func aShowWithNoEpisodeTitleDoesNotTrailASeparator() {
+    let entry = NowEntry(contentType: "feature", duration: 100, offsetSeconds: 0,
+                         remainingSeconds: 100, title: "films__Jaws",
+                         show: "Jaws", episode: nil, plex: nil)
+    #expect(entry.displayTitle == "Jaws")
 }
 
 @Test func aFourFieldPlexRefStillDecodes() throws {

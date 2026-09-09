@@ -56,6 +56,10 @@ public struct NowEntry: Codable, Equatable, Sendable {
     public let offsetSeconds: Double
     public let remainingSeconds: Double
     public let title: String?
+    /// The programme's real name, resolved by the box against Plex at schedule time.
+    /// Absent from an older box, which is why `displayTitle` still has its fallback.
+    public let show: String?
+    public let episode: String?
     public let plex: PlexRef?
 
     enum CodingKeys: String, CodingKey {
@@ -64,12 +68,27 @@ public struct NowEntry: Codable, Equatable, Sendable {
         case offsetSeconds = "offset_seconds"
         case remainingSeconds = "remaining_seconds"
         case title
+        case show
+        case episode
         case plex
     }
 
-    /// The box's `title` is the pool symlink's stem, which carries a `folder__` prefix and
-    /// dots where spaces belong. Presentable, not authoritative — the guide has real titles.
+    /// What the bug should say, joined the way `ChannelBugView` splits it.
+    ///
+    /// The box answers this properly now. `tuner.box` has always drawn its own bug from
+    /// `tuner.titles.describe`, but `/api/tv/N/now` used to hand over the pool symlink's
+    /// stem — a `folder__` prefix and a scene suffix wrapped around the answer — so the
+    /// television said "This Old House / The Reading House" while the app said
+    /// "thisoldhouse__This Old House - S08E08 - The Reading House - 8 WEBDL-1080p". The
+    /// regex below was this app guessing at something the box already knew.
+    ///
+    /// It is kept only as the fallback for a box that has not been updated. Delete it once
+    /// no such box is left.
     public var displayTitle: String {
+        if let show, !show.isEmpty {
+            if let episode, !episode.isEmpty { return "\(show) — \(episode)" }
+            return show
+        }
         guard let raw = title else { return "" }
         let stripped = raw.replacingOccurrences(
             of: "^[a-z0-9]+__", with: "", options: [.regularExpression])

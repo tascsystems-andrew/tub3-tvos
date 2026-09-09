@@ -33,6 +33,19 @@ struct SetupScreen: View {
                 Text("8008TUB3")
                     .font(Theme.furniture(88, .bold))
                     .foregroundStyle(Theme.gold)
+                    // Belt and braces over the scale above: the one string on this screen
+                    // that must never be clipped is the one that says what the app is.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                // The mark is 8008TUB3; the name is BoobTube. `brand.py` on the box carries
+                // both for this reason — the mark is leetspeak and is unreadable to anyone
+                // who does not already know what it spells, which on a first-run screen is
+                // everyone. Somebody opening this on a phone saw a logo and no name and
+                // could not tell what the app was.
+                Text("BoobTube")
+                    .font(Theme.furniture(30))
+                    .foregroundStyle(Theme.purple)
+                    .padding(.top, 2)
                 Text(searching ? "Looking for your television…"
                                : found.isEmpty ? "No television found on this network"
                                                : "Found \(found.count == 1 ? "a television" : "\(found.count) televisions")")
@@ -116,7 +129,7 @@ struct SetupScreen: View {
                     .font(Theme.furniture(24))
                     .foregroundStyle(Theme.dim)
             }
-            .padding(80)
+            .padding(Theme.scale * 80)
         }
         .task { await search() }
     }
