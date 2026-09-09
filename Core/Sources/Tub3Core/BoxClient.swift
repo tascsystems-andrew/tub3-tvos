@@ -52,6 +52,28 @@ public actor BoxClient {
         try await get("api/tv/\(channel)/now", as: NowPlaying.self)
     }
 
+    /// What the box thinks of itself.
+    ///
+    /// On its own short-lived session rather than the shared one: `/api/status` shells out to
+    /// check the network drive and can take ten seconds when the NAS is asleep, and a panel
+    /// that has since been closed must not leave a request hanging behind it. Six seconds,
+    /// then the screen says it cannot ask.
+    public func health() async throws -> BoxHealth {
+        struct Envelope: Decodable { let health: BoxHealth }
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 6
+        config.timeoutIntervalForResource = 6
+        let brief = URLSession(configuration: config)
+        defer { brief.invalidateAndCancel() }
+        let url = base.appendingPathComponent("api/status")
+        let (data, response) = try await brief.data(from: url)
+        guard let http = response as? HTTPURLResponse,
+              (200 ..< 300).contains(http.statusCode) else {
+            throw BoxError.unreachable("status")
+        }
+        return try JSONDecoder().decode(Envelope.self, from: data).health
+    }
+
     public func guide() async throws -> Guide {
         try await get("api/guide", as: Guide.self)
     }

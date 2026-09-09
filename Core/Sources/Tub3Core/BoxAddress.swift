@@ -37,6 +37,21 @@ public enum BoxAddress {
     /// `%en` is an invalid percent-escape. The zone is meaningful to the kernel and
     /// meaningless to URLSession. IPv6 is worse: the bracketed form parses and then silently
     /// becomes `%25en0`.
+    /// An address as it should be read off a screen and typed into another device.
+    ///
+    /// Without the scheme, without a trailing slash. Nobody types `http://`, and it is the
+    /// noisiest part of the one line somebody has to copy by hand. Lifted out of
+    /// `StandbyCard`, which had it privately — two screens showing the same address in two
+    /// shapes is the kind of difference that makes people doubt both.
+    public static func forDisplay(_ address: String) -> String {
+        var s = address
+        for prefix in ["http://", "https://"] where s.hasPrefix(prefix) {
+            s.removeFirst(prefix.count)
+        }
+        if s.hasSuffix("/") { s.removeLast() }
+        return s
+    }
+
     public static func stripZone(_ host: String) -> String {
         guard let percent = host.firstIndex(of: "%") else { return host }
         return String(host[..<percent])

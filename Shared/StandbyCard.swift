@@ -1,4 +1,5 @@
 import SwiftUI
+import Tub3Core
 
 /// The box answered, and it is not finished being set up.
 ///
@@ -21,7 +22,7 @@ struct StandbyCard: View {
             Text(detail)
                 .font(Theme.furniture(32))
                 .foregroundStyle(Theme.dim)
-            Text(display)
+            Text(BoxAddress.forDisplay(address))
                 .font(Theme.furniture(44, .semibold))
                 .foregroundStyle(Theme.gold)
                 .padding(.top, 20)
@@ -36,14 +37,4 @@ struct StandbyCard: View {
         .accessibilityIdentifier("tub3.standby")
     }
 
-    /// Without the scheme. Nobody types `http://`, and it is the noisiest part of the string
-    /// on the one line that has to be read off a screen and retyped on another device.
-    private var display: String {
-        var s = address
-        for prefix in ["http://", "https://"] where s.hasPrefix(prefix) {
-            s.removeFirst(prefix.count)
-        }
-        if s.hasSuffix("/") { s.removeLast() }
-        return s
-    }
 }

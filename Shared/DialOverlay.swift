@@ -11,15 +11,20 @@ public struct DialOverlay: View {
     let current: Int?
     let onPick: (Int) -> Void
     let onClose: () -> Void
+    let onSetup: () -> Void
 
-    @FocusState private var focused: Int?
+    /// A slot rather than a channel number, because the strip's last card is not a channel.
+    private enum Slot: Hashable { case channel(Int), setup }
+    @FocusState private var focused: Slot?
 
     public init(channels: [Channel], current: Int?,
                 onClose: @escaping () -> Void = {},
+                onSetup: @escaping () -> Void = {},
                 onPick: @escaping (Int) -> Void) {
         self.channels = channels
         self.current = current
         self.onClose = onClose
+        self.onSetup = onSetup
         self.onPick = onPick
     }
 
@@ -52,17 +57,50 @@ public struct DialOverlay: View {
                             .buttonStyle(.plain)
                             #endif
                             .id(channel.channel)
-                            .focused($focused, equals: channel.channel)
+                            .focused($focused, equals: .channel(channel.channel))
                             .accessibilityIdentifier("tub3.dial.\(channel.channel)")
                         }
+
+                        // Always here, even with no channels at all.
+                        //
+                        // This card is what earns removing the old play/pause fallback. On a
+                        // cold no-signal screen the strip is empty, play/pause was the only
+                        // responsive control on screen, and what it did was forget the box.
+                        // Now there is always one thing to press and it opens the menu.
+                        Button(action: onSetup) {
+                            VStack(spacing: 4) {
+                                Text("SETUP")
+                                    .font(.system(size: 38, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Theme.phosphor)
+                                Text("this app")
+                                    .font(.system(size: 17, design: .monospaced))
+                                    .foregroundStyle(Theme.dim)
+                            }
+                            .frame(minWidth: 150)
+                            .padding(.vertical, 14)
+                        }
+                        #if os(tvOS)
+                        .buttonStyle(.card)
+                        #else
+                        .buttonStyle(.plain)
+                        #endif
+                        .id("setup")
+                        .focused($focused, equals: .setup)
+                        .accessibilityIdentifier("tub3.dial.setup")
                     }
                     .padding(.horizontal, 60)
                     .padding(.vertical, 24)
                 }
                 .background(Theme.ink.opacity(0.86))
                 .onAppear {
-                    // Open on the channel you are already watching, not at the far left.
-                    focused = current ?? channels.first?.channel
+                    // Open on the channel you are already watching, not at the far left —
+                    // and on SETUP when there is no dial, which is the whole point of the
+                    // `?? .setup`. With an empty dial the focus engine previously had
+                    // nothing at all to focus, which is the fault `SetupScreen` already
+                    // records once: a screen with no focus candidate swallows every press.
+                    focused = current.map(Slot.channel)
+                        ?? channels.first.map { Slot.channel($0.channel) }
+                        ?? .setup
                     if let current { scroll.scrollTo(current, anchor: .center) }
                 }
             }

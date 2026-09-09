@@ -4,7 +4,26 @@ import Tub3Core
 /// The whole app: one full-screen channel, and the means to change it.
 public struct TunerScreen: View {
     @State private var tuner: Tuner
-    @State private var showingDial = false
+
+    /// One state, not a boolean per overlay.
+    ///
+    /// "The tuner screen must not steal up and down while something is up" becomes a
+    /// structural guarantee in one switch, rather than a guard the next overlay's author has
+    /// to remember. It also bounds Menu at two presses from the Home screen, because opening
+    /// one overlay closes the other by construction.
+    private enum Overlay { case none, dial, menu }
+    @State private var overlay: Overlay = .none
+    /// So the SELECT button is focused from the first frame rather than whenever the engine
+    /// gets round to it. Without this the screen has exactly one focus candidate and still
+    /// takes an indeterminate moment to focus it, and every press that lands in that gap is
+    /// simply lost — which showed up as tests timing out at forty seconds, passing alone,
+    /// and failing on a different test each run.
+    @Namespace private var focusScope
+
+    /// Built fresh on every open, because every value on it is a fact about right now.
+    @State private var menu = MenuModel(root: { MenuScreen(title: "SETUP", items: []) })
+    /// Nil until the box answers. The screen says "checking…" rather than going blank.
+    @State private var health: BoxHealth?
     /// A route back to the box picker. Nil in the previews and the Core tests, where there
     /// is nothing to go back to.
     private let onChangeBox: (() -> Void)?
@@ -14,9 +33,67 @@ public struct TunerScreen: View {
         self.onChangeBox = onChangeBox
     }
 
+    /// What is on, for the strip under the panel. Suppressed on the guide channel, where the
+    /// listings are the picture and a line saying what is on would be furniture on furniture.
+    private var nowLine: String? {
+        if case .guideChannel = tuner.state { return nil }
+        guard let channel = tuner.current, let entry = tuner.nowEntry else { return nil }
+        let station = tuner.channels.first { $0.channel == channel }?.station ?? ""
+        let bits = entry.displayTitle.components(separatedBy: " — ")
+        var parts = [String(format: "CH %02d", channel), station]
+        parts += bits.filter { !$0.isEmpty }
+        let minutes = Int(entry.remainingSeconds / 60)
+        if minutes > 0 { parts.append("\(minutes) min left") }
+        return parts.filter { !$0.isEmpty }.joined(separator: "   ·   ")
+    }
+
+    private func rebuildMenu() {
+        let wasOpen = menu.isOpen
+        menu = MenuModel(root: {
+            MenuTree.root(tuner: tuner, health: health, onChangeBox: onChangeBox,
+                          onStartOn: { pick in
+                              let defaults = UserDefaults.standard
+                              if let pick { defaults.set(pick, forKey: Tuner.startOnKey) }
+                              else { defaults.removeObject(forKey: Tuner.startOnKey) }
+                          })
+        })
+        menu.open()
+        _ = wasOpen
+    }
+
     public var body: some View {
         ZStack {
             Theme.ink.ignoresSafeArea()
+
+            // SELECT, and it has to be a Button because a Button is what the focus engine
+            // presses. The three attempts recorded below all failed the same way: they tried
+            // to catch a press on a view the engine was not pressing.
+            //
+            // A CHILD of this ZStack and a SIBLING of the content, never a wrapper. Wrapping
+            // does work for input and collapses the whole view tree into one accessibility
+            // element, taking `tub3.channel.tuned`, the ident and the strip with it. A
+            // sibling encloses nothing, and being a child keeps this ZStack an ancestor of
+            // whatever holds focus — which is what keeps the move and play/pause handlers
+            // below firing.
+            //
+            // Present-or-absent rather than merely unfocusable: `.focusable(false)` is for
+            // bare views, while a Button takes its focusability from the control, so the
+            // modifier is a hope and taking it out of the tree is a guarantee.
+            //
+            // `Color.clear`, never `.opacity(0)` — UIKit refuses focus to an alpha-zero view
+            // and drops it out of the accessibility tree, which is the fault that cost a
+            // morning on the channel bug. And no `.contentShape`: that defines a hit-test
+            // region, and nothing here hit-tests. A UIPress is routed by focus, which is
+            // exactly why `.onTapGesture` never fired.
+            #if os(tvOS)
+            if overlay == .none {
+                Button { withAnimation { overlay = .menu } } label: { Color.clear }
+                    .buttonStyle(.plain)
+                    .prefersDefaultFocus(in: focusScope)
+                    .accessibilityLabel("Setup")
+                    .accessibilityIdentifier("tub3.select")
+            }
+            #endif
 
             switch tuner.state {
             case .idle:
@@ -70,10 +147,17 @@ public struct TunerScreen: View {
                 EmptyView()
             }
 
-            if showingDial {
+            if overlay == .menu {
+                MenuOverlay(menu: menu, nowLine: nowLine)
+                    .transition(.opacity)
+                    .zIndex(3)
+            }
+
+            if overlay == .dial {
                 DialOverlay(channels: tuner.channels, current: tuner.current,
-                            onClose: { withAnimation { showingDial = false } }) { picked in
-                    showingDial = false
+                            onClose: { withAnimation { overlay = .none } },
+                            onSetup: { withAnimation { overlay = .menu } }) { picked in
+                    overlay = .none
                     Task { await tuner.tune(to: picked) }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -81,43 +165,53 @@ public struct TunerScreen: View {
             }
 
         }
+        .focusScope(focusScope)
         .animation(.easeInOut(duration: 0.4), value: tuner.bugVisible)
-        .animation(.easeOut(duration: 0.25), value: showingDial)
+        .animation(.easeOut(duration: 0.25), value: overlay)
         .task { await tuner.start() }
+        // Closing the menu is the model's job, not this view's: `leave()` pops a level and
+        // closes at the root, and the Menu button and the Back row both go through it. This
+        // watches the result rather than duplicating the rule.
+        .onChange(of: menu.isOpen) { _, open in
+            if !open, overlay == .menu { withAnimation { overlay = .none } }
+        }
+        .onChange(of: overlay) { _, now in
+            guard now == .menu else { return }
+            rebuildMenu()
+            // Asked once per opening, on a six-second session of its own. A stale verdict on
+            // a screen somebody opened *because* they are worried is worse than "checking…".
+            Task {
+                health = try? await tuner.boxHealth()
+                if overlay == .menu { rebuildMenu() }
+            }
+        }
         #if os(tvOS)
         // Three routes, and each is the one that verifiably works rather than the one that
         // reads best.
         //
-        // `.focusable()` is what makes move commands arrive at all: tvOS routes them through
-        // the focus engine, and this screen is a video layer with no buttons, so without it
-        // the remote is simply dead.
+        // Move commands arrive because something in this tree is focusable and this ZStack
+        // is its ancestor — the invisible Button above. This used to be `.focusable()` on the
+        // screen itself, which worked while there was nothing else to focus.
         //
-        // The channel strip is on PLAY/PAUSE, not the centre click. Centre click looks
-        // obvious and has no reliable SwiftUI route here — `.onTapGesture` is an iOS idiom
-        // that never fires from a clickpad, wrapping the screen in a `Button` does work and
-        // collapses the whole view tree into one accessibility element, and a first-responder
-        // UIView never received the presses at all. Play/pause is a real physical button, it
-        // is what a set-top box uses for its banner, and it is verified by a test.
-        .focusable(!showingDial)
+        // The channel strip stays on PLAY/PAUSE rather than moving to the centre click.
+        // Play/pause is a real physical button, it is what a set-top box uses for its
+        // banner, and it is verified by a test. The centre click is now SETUP, which is the
+        // box's own grammar: WATCH SELECT opens the menu.
         .onMoveCommand { direction in
-            guard !showingDial else { return }
+            guard overlay == .none else { return }
             switch direction {
             case .up: Task { await tuner.channelUp() }
             case .down: Task { await tuner.channelDown() }
             default: break
             }
         }
+        // The strip, and nothing conditional about it. It used to fall back to forgetting
+        // the box when the dial was empty — the worst accidental press in the app, because
+        // on a cold no-signal screen it was the only responsive control and what it did was
+        // throw away the pairing. The strip now always carries a SETUP card, so there is
+        // always something to open and the menu owns that route properly.
         .onPlayPauseCommand {
-            // With no channels there is no strip to open, and the button would do nothing at
-            // all — which on a screen already saying "no signal" reads as a dead remote. So
-            // it goes back to the picker instead: the cheapest correct gesture out of a
-            // wrong or stale address, and the only one, since Menu deliberately leaves the
-            // app rather than being swallowed here.
-            if tuner.channels.isEmpty, let onChangeBox {
-                onChangeBox()
-            } else {
-                withAnimation { showingDial.toggle() }
-            }
+            withAnimation { overlay = (overlay == .dial) ? .none : .dial }
         }
         // No `.onExitCommand` here, deliberately, and it is worth saying why the obvious
         // version was wrong. It used to close the strip from this screen with the body

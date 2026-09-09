@@ -141,9 +141,23 @@ public final class Tuner {
             let defaults = UserDefaults.standard
             let forced = defaults.object(forKey: "tub3Channel") != nil
                 ? defaults.integer(forKey: "tub3Channel") : nil
-            let first = forced ?? (channels.first { $0.isAmbiance }
-                                   ?? channels.first { !$0.isGuide }
-                                   ?? channels.first)?.channel
+            // Start-on, from the menu. Validated against the dial that was just fetched: a
+            // stored channel the box no longer carries — a station dropped by a rebuild, or
+            // a preference set against a different box — falls through to the default rather
+            // than opening on a channel that will never answer.
+            let stored: Int? = {
+                let key = defaults.object(forKey: Self.startOnKey) != nil
+                    ? defaults.integer(forKey: Self.startOnKey) : nil
+                let wanted = key ?? (defaults.object(forKey: Self.lastWatchedKey) != nil
+                                     ? defaults.integer(forKey: Self.lastWatchedKey) : nil)
+                guard let wanted, channels.contains(where: { $0.channel == wanted }) else {
+                    return nil
+                }
+                return wanted
+            }()
+            let first = forced ?? stored ?? (channels.first { $0.isAmbiance }
+                                             ?? channels.first { !$0.isGuide }
+                                             ?? channels.first)?.channel
             if let first { await tune(to: first) }
             keepDialFresh()
         } catch {
@@ -249,14 +263,52 @@ public final class Tuner {
     }
 
     public func channelUp() async {
-        guard let index = tunedIndex() else { return }
+        guard let index = tunedIndex() else { return await lost() }
         await tune(to: channels[(index + 1) % channels.count].channel)
     }
 
     public func channelDown() async {
-        guard let index = tunedIndex() else { return }
+        guard let index = tunedIndex() else { return await lost() }
         await tune(to: channels[(index - 1 + channels.count) % channels.count].channel)
     }
+
+    /// No place in the dial. Two causes, opposite answers.
+    ///
+    /// An empty dial means the box has not been heard from and the thing to do is ask again.
+    /// A `current` the dial no longer carries — a station dropped by a rebuild, or a Start-on
+    /// preference the box has outlived — means the dial is fine and only our place in it is
+    /// wrong, so the answer is to land somewhere real.
+    ///
+    /// Without the distinction, up and down are dead buttons on the one screen where every
+    /// button gets pressed; and asking again in both cases would re-request a channel that
+    /// will never answer, once per press, for as long as somebody keeps pressing.
+    private func lost() async {
+        if let first = channels.first {
+            await tune(to: first.channel)
+        } else {
+            await retryNow()
+        }
+    }
+
+    /// Ask the box again, now, without yanking anybody off what they are watching.
+    ///
+    /// Deliberately not `start()`: that ends by tuning to the opening channel, so a viewer on
+    /// channel 6 who pressed "try again" would find themselves back on ambiance.
+    public func retryNow() async {
+        if stillWaiting {
+            startGeneration += 1
+            await start(retrying: true)
+        } else if let current {
+            await load(channel: current, generation: tuneGeneration)
+        }
+    }
+
+    /// What the box thinks of itself. The menu asks once per opening.
+    public func boxHealth() async throws -> BoxHealth { try await box.health() }
+
+    /// Where this app is pointed, for the menu to show. `base` is an immutable `let` on the
+    /// actor, so no await.
+    public var address: String { box.base.absoluteString }
 
     private func tunedIndex() -> Int? {
         guard let current else { return channels.isEmpty ? nil : 0 }
@@ -340,7 +392,18 @@ public final class Tuner {
             await retry(channel: now.channel, after: building ? 10 : 5, generation: generation)
             return
         }
-        guard let resolver, let base = plexBase else { return }
+        guard let resolver, let base = plexBase else {
+            // Reachable whenever the box answers before Plex has been configured on it, and
+            // a bare `return` left the screen saying "tuning…" for ever with nothing
+            // retrying. Say what is actually wrong, and keep asking — somebody is very
+            // likely filling that form in on a laptop right now.
+            state = .standby(headline: "Almost there",
+                             detail: "This box has no Plex server yet.",
+                             address: box.base.absoluteString)
+            Diag.log("no plex while tuning ch\(now.channel)")
+            await retryStart(after: 10)
+            return
+        }
         do {
             let item = try await resolver.resolve(entry, base: base,
                                                   forceTranscode: avoidDirect)
@@ -352,6 +415,9 @@ public final class Tuner {
             Diag.log("play url=\(item.url.absoluteString) joinAt=\(item.joinAt) playFor=\(item.playFor) session=\(item.session ?? "direct")")
             state = .playing(channel: now.channel, station: now.station,
                              title: entry.displayTitle, contentType: entry.contentType)
+            // On a picture arriving, not on a button moving. Surfing through eight channels
+            // should not make the eighth the one it opens on tomorrow.
+            UserDefaults.standard.set(now.channel, forKey: Self.lastWatchedKey)
             playingDirect = item.session == nil
             nowEntry = entry
             if await engine.play(item) {
@@ -505,6 +571,11 @@ public final class Tuner {
             await self.load(channel: channel, generation: generation)
         }
     }
+
+    /// Where the two preferences live. Read here rather than passed in, because `Tuner` is
+    /// in Core and `AppConfig` is not — the same reason `tub3Channel` above is read this way.
+    public static let startOnKey = "tub3.startOn"
+    public static let lastWatchedKey = "tub3.lastWatched"
 
     /// How long the ident stays up. The box's number.
     static let bugSeconds: UInt64 = 4_000_000_000
