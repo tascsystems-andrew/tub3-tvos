@@ -88,4 +88,28 @@ final class MenuTests: XCTestCase {
         XCTAssertTrue(app.buttons["tub3.dial.setup"].waitForExistence(timeout: 25),
                       "an empty strip left the viewer with nothing to press")
     }
+
+    /// Opening the menu twice.
+    ///
+    /// The design called this the most likely regression of the whole build and it was
+    /// right: the invisible SELECT button is removed from the tree while an overlay is up,
+    /// so when the menu closes the button comes back with no focus on it, and the next press
+    /// goes nowhere. The menu opened exactly once per launch.
+    func testTheMenuOpensAgainAfterItIsClosed() {
+        let app = XCUIApplication()
+        app.launchArguments += Harness.quiet
+        app.launch()
+        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Thread.sleep(forTimeInterval: 4)
+
+        for attempt in 1 ... 3 {
+            XCUIRemote.shared.press(.select)
+            XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 8),
+                          "the menu did not open on attempt \(attempt)")
+            XCUIRemote.shared.press(.menu)
+            XCTAssertFalse(app.otherElements["tub3.menu"].waitForExistence(timeout: 3),
+                           "the menu did not close on attempt \(attempt)")
+            Thread.sleep(forTimeInterval: 1)
+        }
+    }
 }

@@ -19,6 +19,10 @@ public struct TunerScreen: View {
     /// simply lost — which showed up as tests timing out at forty seconds, passing alone,
     /// and failing on a different test each run.
     @Namespace private var focusScope
+    /// Re-resolves focus inside the namespace. Needed even though the SELECT button now
+    /// stays in the tree: closing an overlay leaves focus on rows that have just gone, and
+    /// without this the menu reopened two times in three.
+    @Environment(\.resetFocus) private var resetFocus
 
     /// Built fresh on every open, because every value on it is a fact about right now.
     @State private var menu = MenuModel(root: { MenuScreen(title: "SETUP", items: []) })
@@ -86,13 +90,25 @@ public struct TunerScreen: View {
             // region, and nothing here hit-tests. A UIPress is routed by focus, which is
             // exactly why `.onTapGesture` never fired.
             #if os(tvOS)
-            if overlay == .none {
-                Button { withAnimation { overlay = .menu } } label: { Color.clear }
-                    .buttonStyle(.plain)
-                    .prefersDefaultFocus(in: focusScope)
-                    .accessibilityLabel("Setup")
-                    .accessibilityIdentifier("tub3.select")
-            }
+            // Always in the tree, disabled rather than removed.
+            //
+            // It used to be `if overlay == .none { … }`, on the reasoning that a Button takes
+            // its focusability from the control so removing it is a guarantee where
+            // `.focusable(false)` is only a hope. True, and it cost more than it bought: a
+            // view that leaves the tree and comes back has no identity across the gap, the
+            // engine has no reason to focus it again, and the menu opened once per launch.
+            // `resetFocus` on the way back fixed that two times in three, which is not a fix.
+            //
+            // `.disabled` is a real control-level property and is respected — a disabled
+            // Button is not a focus candidate, so an overlay's own rows take focus while one
+            // is up — and the view keeps its identity throughout, so there is no gap to
+            // recover from.
+            Button { withAnimation { overlay = .menu } } label: { Color.clear }
+                .buttonStyle(.plain)
+                .disabled(overlay != .none)
+                .prefersDefaultFocus(in: focusScope)
+                .accessibilityLabel("Setup")
+                .accessibilityIdentifier("tub3.select")
             #endif
 
             switch tuner.state {
@@ -176,6 +192,7 @@ public struct TunerScreen: View {
             if !open, overlay == .menu { withAnimation { overlay = .none } }
         }
         .onChange(of: overlay) { _, now in
+            if now == .none { resetFocus(in: focusScope) }
             guard now == .menu else { return }
             rebuildMenu()
             // Asked once per opening, on a six-second session of its own. A stale verdict on
