@@ -186,3 +186,35 @@ private func fixture(_ name: String) throws -> Data {
     #expect(Feature.caption(agreeing, playing: entry) == "Grand Designs — Oxford, 1999")
     #expect(Feature.remaining(agreeing, playing: entry) == 60)
 }
+
+@Test func steppingBetweenAdvertsKeepsTheProgramme() throws {
+    // Channel 15 did exactly this on 2026-09-09: an .mkv AVFoundation would not open
+    // (-11828, though an HTTP probe of the same URL returned 206), so the app stepped to the
+    // next entry — a Cadbury's advert. Mid-break that step changes nothing about what the
+    // viewer sat down to watch, and dropping the box's answer would have put the advert's
+    // name back on the bug for the rest of the break.
+    let broken = NowEntry(contentType: "commercial", duration: 30, offsetSeconds: 0,
+                          remainingSeconds: 30, title: "kids__ADS", show: "ADS",
+                          episode: nil, plex: nil)
+    let next = NowEntry(contentType: "commercial", duration: 30, offsetSeconds: 0,
+                        remainingSeconds: 30, title: "kids__Cadbury_s_Gorilla",
+                        show: "Cadbury_s_Gorilla", episode: nil, plex: nil)
+    let programme = Feature(show: "Grand Designs", episode: "Oxford, 1999",
+                            contentType: "feature", remainingSeconds: 400, inBreak: true)
+
+    let carried = programme.skipping(broken.remainingSeconds)
+    #expect(Feature.caption(carried, playing: next) == "Grand Designs — Oxford, 1999")
+    // The 30 seconds of advert that never played come off the clock; a bug counting down
+    // from 400 would be counting from a number that was true before the skip.
+    #expect(carried.remainingSeconds == 370)
+    #expect(carried.inBreak)
+}
+
+@Test func skippingNeverGoesPastZeroOrBackwards() {
+    let programme = Feature(show: "X", episode: nil, contentType: "feature",
+                            remainingSeconds: 20, inBreak: true)
+    #expect(programme.skipping(50).remainingSeconds == 0)
+    // A negative remainder on the entry is nonsense the box should never send; treat it as
+    // nothing skipped rather than as time added.
+    #expect(programme.skipping(-10).remainingSeconds == 20)
+}

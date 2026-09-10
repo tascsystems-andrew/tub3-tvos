@@ -112,6 +112,7 @@ public final class Tuner {
         self.box = box
         self.engine = engine
         self.clientID = clientID
+        Self.forgetChannelIfAsked()
         engine.onBoundary = { [weak self] in
             Task { await self?.advance() }
         }
@@ -126,6 +127,17 @@ public final class Tuner {
     public func start() async { await start(retrying: true) }
 
     private func start(retrying: Bool) async {
+        // Which tune, if any, was in force before the box was asked anything.
+        //
+        // Every line below this is on the far side of two network round trips, and the
+        // backoff ladder means one of these can be in flight all evening. Press a channel
+        // button inside that window and the ladder used to come back and tune to the
+        // *opening* channel over the top of it — `stillWaiting` was checked before the
+        // await and not after, so nothing noticed. On the shelf that is a set that jumps
+        // back to last night's channel a beat after you changed it; in the suite it is the
+        // signature every flaky test shared, and it is why they all failed parked on the
+        // last-watched channel rather than on the one that was pressed.
+        let entryGeneration = tuneGeneration
         do {
             channels = try await box.channels()
             guard let base = try await box.plexBase() else {
@@ -174,7 +186,10 @@ public final class Tuner {
             let first = forced ?? stored ?? (channels.first { $0.isAmbiance }
                                              ?? channels.first { !$0.isGuide }
                                              ?? channels.first)?.channel
-            if let first { await tune(to: first) }
+            // Somebody chose a channel while the box was being asked. Theirs wins: the
+            // opening channel is for a set that has just been switched on, not for a viewer
+            // who has just pressed something.
+            if let first, tuneGeneration == entryGeneration { await tune(to: first) }
             keepDialFresh()
         } catch {
             Diag.log("box unreachable: \(error.localizedDescription)")
@@ -496,12 +511,18 @@ public final class Tuner {
                                                      forceTranscode: avoidDirect),
               generation == tuneGeneration else { return false }
         Diag.log("stepping past a file that will not open, to \(next.displayTitle)")
+        // Stepping out of the *programme* loses it; stepping between two adverts does not.
+        // The box's answer named the programme the break is interrupting, and a broken advert
+        // in the middle of it does not change what the viewer sat down to watch — so carry it,
+        // minus whatever was left of the entry just abandoned. Outside a break the programme
+        // itself is what would not open, and nothing here knows what follows it.
+        let carried = feature?.inBreak == true
+            ? feature?.skipping(nowEntry?.remainingSeconds ?? 0) : nil
         state = .playing(channel: channel, station: station,
-                         title: next.displayTitle, contentType: next.contentType)
+                         title: Feature.caption(carried, playing: next),
+                         contentType: next.contentType)
         nowEntry = next
-        // The box's answer described the entry we just stepped over. Nothing here knows what
-        // the programme is any more, and a stale name outlives the advert it was taken from.
-        feature = nil
+        feature = carried
         playingDirect = item.session == nil
         return await engine.play(item)
     }
@@ -617,6 +638,27 @@ public final class Tuner {
     /// in Core and `AppConfig` is not — the same reason `tub3Channel` above is read this way.
     public static let startOnKey = "tub3.startOn"
     public static let lastWatchedKey = "tub3.lastWatched"
+
+    /// A launch that inherits nothing from the one before it.
+    ///
+    /// `lastWatched` is written on every picture that arrives, so each test in a suite used
+    /// to open on whatever channel the test before it happened to leave behind — and a
+    /// channel inherited from a live schedule is sometimes one that has since gone off air,
+    /// or that the box is mid-rebuild on. The test then waits for a picture that is not
+    /// coming and blames the button it pressed.
+    ///
+    /// A separate flag from `-tub3Forget`, which forgets the *box* and so lands on the setup
+    /// screen: a test needs to forget the channel without forgetting the television. Forget
+    /// implies it, because a launch that starts from nothing starts from nothing.
+    static func forgetChannelIfAsked() {
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("-tub3ForgetChannel") || args.contains("-tub3Forget") else {
+            return
+        }
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: startOnKey)
+        defaults.removeObject(forKey: lastWatchedKey)
+    }
 
     /// How long the ident stays up. The box's number.
     static let bugSeconds: UInt64 = 4_000_000_000

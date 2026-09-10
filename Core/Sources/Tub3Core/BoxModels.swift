@@ -164,6 +164,17 @@ public struct Feature: Codable, Equatable, Sendable {
         return show
     }
 
+    /// The same programme with `seconds` of it already gone.
+    ///
+    /// Stepping past a file that will not open skips whatever was left of that entry, and the
+    /// programme's remainder has to shrink by the same amount or the bug counts down from a
+    /// number that was true before the skip.
+    public func skipping(_ seconds: Double) -> Feature {
+        Feature(show: show, episode: episode, contentType: contentType,
+                remainingSeconds: max(0, remainingSeconds - max(0, seconds)),
+                inBreak: inBreak)
+    }
+
     /// What a caption should say, given the box's answer and the entry actually playing.
     ///
     /// Static because the absence of a `Feature` is half of what it decides: an older box
