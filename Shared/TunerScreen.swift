@@ -19,10 +19,20 @@ public struct TunerScreen: View {
     /// simply lost — which showed up as tests timing out at forty seconds, passing alone,
     /// and failing on a different test each run.
     @Namespace private var focusScope
+    // The focus engine itself, which is the one thing an iPad genuinely does not have.
+    // `resetFocus`, `focusScope` and `prefersDefaultFocus` are all tvOS-only, and the first
+    // of them was left unguarded when it landed — so `make phone` has not compiled since,
+    // and nothing said so because nothing in the loop builds that target.
+    #if os(tvOS)
     /// Re-resolves focus inside the namespace. Needed even though the SELECT button now
     /// stays in the tree: closing an overlay leaves focus on rows that have just gone, and
     /// without this the menu reopened two times in three.
     @Environment(\.resetFocus) private var resetFocus
+    /// Whether the invisible SELECT button is actually holding focus — the sensor the
+    /// watchdog below reads. Not a preference: this is the app finding out, from the focus
+    /// engine, whether anything on this screen can receive a button at all.
+    @FocusState private var selectFocused: Bool
+    #endif
 
     /// Built fresh on every open, because every value on it is a fact about right now.
     @State private var menu = MenuModel(root: { MenuScreen(title: "SETUP", items: []) })
@@ -51,17 +61,38 @@ public struct TunerScreen: View {
         return parts.filter { !$0.isEmpty }.joined(separator: "   ·   ")
     }
 
-    /// Nothing more is about to change shape.
+    /// Nothing more is about to change shape, *by itself*.
     ///
     /// `tub3.channel.tuned` goes non-empty when a tune *begins* — the same turn the state
     /// becomes `.tuning`, before the settle window and before Plex has been asked anything.
     /// It says a channel number exists, not that a picture is up, and the difference is the
     /// window in which the tree is rebuilt under whatever holds focus. The 4-second sleeps in
     /// the tests were guessing at this.
+    ///
+    /// Only the two states nothing is pending behind. This used to be everything except
+    /// `.idle` and `.tuning`, which quietly included the three states the app is *retrying*
+    /// from: a slate has a `retry` armed, and `.broken` and `.standby` each have a backoff
+    /// ladder that will re-ask the box and then tune. A suite told "ready" on one of those
+    /// was handed a screen that would rebuild itself a few seconds later, and it read the
+    /// resulting mess as a fault in whatever it pressed. Measured: a run that reported
+    /// settled 3.0s after launch was on a slate, and did not reach a picture until 10s.
     private var settled: Bool {
         switch tuner.state {
-        case .idle, .tuning: false
-        default: true
+        case .playing, .guideChannel: true
+        case .idle, .tuning, .slate, .standby, .broken: false
+        }
+    }
+
+    /// The state, by name, for a test to wait on the one it actually needs.
+    private var stateName: String {
+        switch tuner.state {
+        case .idle: "idle"
+        case .tuning: "tuning"
+        case .playing: "playing"
+        case .guideChannel: "guide"
+        case .slate: "slate"
+        case .standby: "standby"
+        case .broken: "broken"
         }
     }
 
@@ -129,6 +160,7 @@ public struct TunerScreen: View {
             Button { rebuildMenu(); withAnimation { overlay = .menu } } label: { Color.clear }
                 .buttonStyle(.plain)
                 .disabled(overlay != .none)
+                .focused($selectFocused)
                 .prefersDefaultFocus(in: focusScope)
                 .accessibilityLabel("Setup")
                 .accessibilityIdentifier("tub3.select")
@@ -174,6 +206,11 @@ public struct TunerScreen: View {
                 .frame(width: 1, height: 1)
                 .opacity(0.02)
 
+            Text(stateName)
+                .accessibilityIdentifier("tub3.state")
+                .frame(width: 1, height: 1)
+                .opacity(0.02)
+
             // The bug's own identifier stays on the bug, because what it is for is asserting
             // that the ident was *drawn* — which is a different question from what is tuned.
             switch tuner.state {
@@ -209,10 +246,53 @@ public struct TunerScreen: View {
             }
 
         }
+        #if os(tvOS)
         .focusScope(focusScope)
+        #endif
         .animation(.easeInOut(duration: 0.4), value: tuner.bugVisible)
         .animation(.easeOut(duration: 0.25), value: overlay)
         .task { await tuner.start() }
+        #if os(tvOS)
+        // Keep hold of focus, because losing it is how this television goes deaf.
+        //
+        // tvOS resolves focus for a scope once, when the scope appears, and nothing ever
+        // makes it try again. Measured on a cold launch against the real box: one run in
+        // four came up with the SELECT button in the tree, enabled, and simply *not
+        // focused* — and then every press went nowhere for as long as the app was left
+        // running. Not a slow start. Four play/pause presses over seventeen seconds, over a
+        // picture that was playing perfectly, all lost; the suite recorded that as "the
+        // channel strip did not open" and blamed the strip. Nothing in the app would ever
+        // have recovered from it, and on the shelf it is a set that has to be force-quit,
+        // which is why the answer is a watchdog rather than a longer wait in a test.
+        //
+        // The sensor is `@FocusState`, which is the only way to ask whether the engine
+        // actually gave the button focus. The actuators are alternated on purpose: a
+        // `@FocusState` write is dropped outright when the control is not yet registered
+        // with the engine, and `resetFocus` does nothing when the scope is not installed
+        // yet — whichever of those is true at this instant, the other is tried 250ms later.
+        //
+        // Runs for as long as the screen is up, like `retryStart` and for its reason: this
+        // is an appliance on a shelf with nobody to press anything, so it has to still be
+        // trying whenever the engine is finally ready to listen. While an overlay is up the
+        // button is disabled and its own rows hold focus, so the watchdog stands down —
+        // `.task(id:)` restarts it the moment the overlay closes.
+        .task(id: overlay) {
+            var attempt = 0
+            // Re-read rather than checked once: `.task(id:)` cancels at the next suspension
+            // point, so without this an iteration that began just before an overlay opened
+            // could still reach for focus a quarter of a second into it.
+            while !Task.isCancelled, overlay == .none {
+                if selectFocused {
+                    attempt = 0
+                } else {
+                    if attempt.isMultiple(of: 2) { selectFocused = true }
+                    else { resetFocus(in: focusScope) }
+                    attempt += 1
+                }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+        #endif
         // Closing the menu is the model's job, not this view's: `leave()` pops a level and
         // closes at the root, and the Menu button and the Back row both go through it. This
         // watches the result rather than duplicating the rule.
@@ -220,7 +300,9 @@ public struct TunerScreen: View {
             if !open, overlay == .menu { withAnimation { overlay = .none } }
         }
         .onChange(of: overlay) { _, now in
+            #if os(tvOS)
             if now == .none { resetFocus(in: focusScope) }
+            #endif
             guard now == .menu else { return }
             // Asked once per opening, on a six-second session of its own. A stale verdict on
             // a screen somebody opened *because* they are worried is worse than "checking…".

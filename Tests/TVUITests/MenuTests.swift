@@ -14,6 +14,8 @@ final class MenuTests: XCTestCase {
         app.launchArguments += Harness.quiet
         app.launch()
         Harness.tuned(app)
+        // Menu is a press like any other and is lost the same way if nothing holds focus.
+        Harness.responsive(app)
 
         // The app's OWN state is not the signal. XCUITest on tvOS keeps reporting
         // `.runningForeground` for the app under test after the system has backgrounded it,
@@ -31,11 +33,14 @@ final class MenuTests: XCTestCase {
                        "Menu did not leave the app from the top level: the viewer is "
                        + "trapped and only the TV button gets them out")
 
-        // Put the simulator back where it was found. This test succeeds by leaving the Home
-        // screen up, and the next test in the class then launches into a simulator that is
-        // showing something else — which cost a false failure of `testSelectOpensTheMenu`,
-        // passing alone and failing in the suite.
+        // Put the simulator back where it was found, and *wait* for it. This test succeeds by
+        // leaving the Home screen up, and the next test in the class then launches into a
+        // simulator that is showing something else — which cost a false failure of
+        // `testSelectOpensTheMenu`, passing alone and failing in the suite. `activate()`
+        // only asks; waiting for this app to hold focus again is what makes it true before
+        // the next test starts pressing things.
         app.activate()
+        Harness.responsive(app)
     }
 
     /// SELECT opens the menu. The box's own grammar — `WATCH SELECT opens the menu` — and
@@ -44,7 +49,7 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        Harness.tuned(app)
+        Harness.settled(app)
 
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 10),
@@ -60,7 +65,7 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        Harness.tuned(app)
+        Harness.settled(app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 10))
 
@@ -80,9 +85,15 @@ final class MenuTests: XCTestCase {
     func testTheStripIsNeverEmpty() {
         let app = XCUIApplication()
         // Nothing answers here, so the dial stays empty and the screen sits on no signal.
-        app.launchArguments += ["-tub3Mute", "-tub3Box", "http://127.0.0.1:1"]
+        app.launchArguments += ["-tub3Mute", "-tub3ForgetChannel",
+                                "-tub3Box", "http://127.0.0.1:1"]
         app.launch()
 
+        // Deliberately not `settled`: "no signal" is not a settled state — there is a
+        // backoff ladder behind it that will keep asking for ever, which is the point of it.
+        // What this test needs is only that the remote works, which is a separate question
+        // and the one that was silently untrue.
+        Harness.responsive(app)
         XCUIRemote.shared.press(.playPause)
         XCTAssertTrue(app.buttons["tub3.dial.setup"].waitForExistence(timeout: 25),
                       "an empty strip left the viewer with nothing to press")
@@ -98,10 +109,13 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        Harness.tuned(app)
         Harness.settled(app)
 
         for attempt in 1 ... 3 {
+            // Re-checked every time round, not only before the first press. Closing an
+            // overlay hands focus back to the invisible SELECT button, and this loop exists
+            // precisely because that hand-back is the thing that used to fail.
+            Harness.responsive(app)
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 8),
                           "the menu did not open on attempt \(attempt)")

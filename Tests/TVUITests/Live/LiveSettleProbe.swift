@@ -9,17 +9,22 @@ import XCTest
 /// passed through, which is exactly what SurfTests exists to worry about.
 ///
 /// The assertion is on the app's own trace: `tune` is announced per press, `play url` only
-/// when something is actually opened. Run against a live box.
-final class SettleTests: XCTestCase {
+/// when something is actually opened — which is read out of the unified log by whoever runs
+/// it, not from in here. A **probe**, therefore, and out of `make uitest`: what it checks in
+/// this process is that a label still exists, which no amount of breakage would disturb, and
+/// a test that cannot fail for the right reason can only fail for the wrong one.
+///
+///     make uiprobe
+final class LiveSettleProbe: XCTestCase {
 
     func testABurstOfPressesOpensOneChannel() throws {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet + ["-tub3Trace"]
         app.launch()
+        Harness.settled(app)
 
         let label = app.staticTexts["tub3.channel.number"]
         XCTAssertTrue(label.waitForExistence(timeout: 40), "never tuned at all")
-        Thread.sleep(forTimeInterval: 3)          // let the first channel settle and open
 
         // Six presses far faster than the settle window.
         for _ in 0 ..< 6 {

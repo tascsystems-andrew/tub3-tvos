@@ -6,10 +6,11 @@ import XCTest
 final class GuideRowsTests: XCTestCase {
     func testGuideShowsChannelRowsNotJustChrome() {
         let app = XCUIApplication()
-        app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
+        app.launchArguments += Harness.quiet(on: 3)
         app.launch()
 
         Harness.tuned(app)
+        Harness.responsive(app)
         XCUIRemote.shared.press(.down)                       // ch3 -> ch2, the guide,
                                                              // which -tub3Channel pinned
         XCTAssertTrue(app.otherElements["tub3.guide"].waitForExistence(timeout: 25))

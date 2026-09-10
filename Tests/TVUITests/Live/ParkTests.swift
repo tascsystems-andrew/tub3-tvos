@@ -5,9 +5,10 @@ import XCTest
 final class ParkTests: XCTestCase {
     func testParkOnTheGuide() throws {
         let app = XCUIApplication()
-        app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
+        app.launchArguments += Harness.quiet(on: 3)
         app.launch()
         Harness.tuned(app)
+        Harness.responsive(app)
         XCUIRemote.shared.press(.down)          // ch3 -> ch2, the guide. Pinned to 3
                                                 // because the app opens on ambiance, 13.
         Thread.sleep(forTimeInterval: 45)
@@ -18,7 +19,6 @@ final class ParkTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        Harness.tuned(app)
         // `tub3.channel.tuned` appears while the state is still `.tuning`; the switch to
         // `.playing` rebuilds the content and can take focus off the invisible SELECT button
         // for a frame. Let the picture settle before pressing, or the press lands in that gap.

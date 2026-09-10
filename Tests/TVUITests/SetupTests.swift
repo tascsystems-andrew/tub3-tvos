@@ -19,7 +19,10 @@ final class SetupTests: XCTestCase {
                       "nothing was found on the network within thirty seconds")
 
         // tvOS has no tap: the focus engine puts focus on the only button on screen, and
-        // select presses whatever holds it.
+        // select presses whatever holds it. Existing is not the same as holding focus, and
+        // a press sent in between is lost silently — the same fault that made the whole
+        // tuner suite intermittent, on the one screen that has no watchdog behind it.
+        XCTAssertTrue(focused(box), "the box this screen found was never focusable")
         XCUIRemote.shared.press(.select)
 
         Harness.tuned(app)
@@ -31,7 +34,9 @@ final class SetupTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-tub3Mute", "-tub3Forget"]
         app.launch()
-        XCTAssertTrue(app.buttons["tub3.setup.box"].firstMatch.waitForExistence(timeout: 30))
+        let box = app.buttons["tub3.setup.box"].firstMatch
+        XCTAssertTrue(box.waitForExistence(timeout: 30))
+        XCTAssertTrue(focused(box), "the box this screen found was never focusable")
         XCUIRemote.shared.press(.select)
         Harness.tuned(app)
         app.terminate()
@@ -43,5 +48,15 @@ final class SetupTests: XCTestCase {
         Harness.tuned(again)
         XCTAssertFalse(again.buttons["tub3.setup.box"].firstMatch.exists,
                        "asked again for a box it had already been given")
+    }
+
+    /// Waits for the focus engine to actually land on an element.
+    private func focused(_ element: XCUIElement, timeout: TimeInterval = 10) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if element.hasFocus { return true }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return false
     }
 }

@@ -10,20 +10,30 @@ what it is told, and asks again when the slot is up.
 ## Running it
 
 ```bash
-make core     # 24 tests, no simulator, ~5ms
+make core     # 69 tests, no simulator, seconds
 make live     # real box, real Plex, real decode
 make tv       # build for the tvOS simulator
 make uitest   # remote input, the channel strip, the guide
+make uiprobe  # the live probes — abandoned transcoders, one open per burst of presses
 ```
+
+`make uitest` is the gate and is meant to be believable: it skips everything in
+`Tests/TVUITests/Live`, because none of it can fail for a reason the app is answerable for.
+The parks hold a screen still for a photograph; the two probes assert only that a label is
+still there, since what they actually measure is read off Plex and out of the unified log by
+a person. Anything that could go red for the box's reasons is out of the gate, or the gate
+going red stops meaning anything.
 
 ## Layout
 
 ```
 Core/      the brain — models, clients, routing, the tuner. Builds for macOS, which is why
            the hard parts are testable in seconds without a simulator.
-Shared/    SwiftUI for both platforms. Exactly one `#if os(tvOS)` so far.
+Shared/    SwiftUI for both platforms. Every `#if os(tvOS)` in it is about the remote or
+           the focus engine, which is the only thing an iPad genuinely does not have.
 Apps/TV    tvOS shell        Apps/Phone   iPhone/iPad shell
 Tests/     XCUIRemote tests — the only way to check remote behaviour from a terminal.
+           `Tests/TVUITests/Live` is the opt-in half: probes and photography, never the gate.
 ```
 
 ## Things that are true and cost a day each to discover

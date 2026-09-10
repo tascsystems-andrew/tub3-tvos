@@ -7,11 +7,15 @@ final class GuideTests: XCTestCase {
 
     func testTuningToTheGuideShowsListings() throws {
         let app = XCUIApplication()
-        app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
+        app.launchArguments += Harness.quiet(on: 3)
         app.launch()
 
-        let bug = app.staticTexts["tub3.channel.tuned"]
-        XCTAssertTrue(bug.waitForExistence(timeout: 40), "never tuned at all")
+        // The number, not a picture. Channel 3 is a scheduled station and may legitimately
+        // be off air at the moment this runs; the guide is reached by pressing down from it
+        // either way, and insisting on a picture first would make this test fail for the
+        // schedule's reasons rather than the guide's.
+        Harness.tuned(app)
+        Harness.responsive(app)
 
         // Down from channel 3 lands on the guide. The channel is pinned because the
         // app opens on the *ambiance* channel, which is 13 — down from there is 12,

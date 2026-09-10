@@ -99,9 +99,20 @@ schemes:
     test:
       config: Debug
       targets: [Tub3TVUITests]
-      # Parks are photography aids: they hold a screen still and assert almost nothing, and
-      # each one is another launch and another abandoned Plex session against the real box.
-      skippedTests: [Tub3TVUITests/ParkTests]
+      # What the gate leaves out lives in the Makefile, not here, and that is deliberate.
+      #
+      # This used to say `skippedTests: [Tub3TVUITests/ParkTests]` as a sibling of `targets`,
+      # where XcodeGen silently drops it — no warning, no `<SkippedTests>` in the generated
+      # scheme — so the photography aids had been running in every `make uitest` since the
+      # day that line was written, and one of them duly turned up in a flaky-run report as a
+      # failure of a test the scheme claimed to skip.
+      #
+      # Written correctly it does generate, and then it is worse: measured, `-only-testing`
+      # does **not** outrank a scheme skip. `xcodebuild ... -only-testing:.../ParkTests`
+      # against a scheme that skips it runs zero tests and exits 0 — so `make uiprobe` and
+      # the by-name screenshot park would both have quietly done nothing, which is the same
+      # silent no-op one layer down. `-skip-testing` on the gate's own command line has
+      # neither problem and can be read off the line that runs.
     # Archive must be Release, or automatic signing reaches for a *development* profile —
     # which needs a registered device and is the wrong kind of profile for TestFlight.
     archive:

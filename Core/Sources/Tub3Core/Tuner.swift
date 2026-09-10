@@ -650,12 +650,13 @@ public final class Tuner {
     /// A separate flag from `-tub3Forget`, which forgets the *box* and so lands on the setup
     /// screen: a test needs to forget the channel without forgetting the television. Forget
     /// implies it, because a launch that starts from nothing starts from nothing.
-    static func forgetChannelIfAsked() {
-        let args = ProcessInfo.processInfo.arguments
-        guard args.contains("-tub3ForgetChannel") || args.contains("-tub3Forget") else {
-            return
-        }
-        let defaults = UserDefaults.standard
+    /// - Parameters are injected only so this is reachable from a test: the app always calls
+    ///   it with the real argument list and the real defaults, and a launch flag is otherwise
+    ///   the one thing a unit test cannot arrange.
+    static func forgetChannelIfAsked(_ arguments: [String] = ProcessInfo.processInfo.arguments,
+                                     defaults: UserDefaults = .standard) {
+        guard arguments.contains("-tub3ForgetChannel")
+                || arguments.contains("-tub3Forget") else { return }
         defaults.removeObject(forKey: startOnKey)
         defaults.removeObject(forKey: lastWatchedKey)
     }

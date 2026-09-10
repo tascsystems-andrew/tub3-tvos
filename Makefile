@@ -5,7 +5,7 @@ SCHEME  := Tub3TV
 # variables it forwards into the test runner; it strips it on the way in.
 BOX     ?= http://boobtube.local:8008
 
-.PHONY: gen core tv run clean
+.PHONY: gen core tv run uitest uiprobe clean
 gen:                       ## regenerate the project after a source-layout change
 	xcodegen generate
 
@@ -19,11 +19,35 @@ tv: gen                    ## build the tvOS app for the simulator
 	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
 	  -destination '$(SIM_TV)' -derivedDataPath build build | tail -5
 
+# Everything under Tests/TVUITests/Live, and for one reason: none of it can fail for a
+# reason the app is answerable for. The parks are photography aids that hold a screen still
+# and assert almost nothing; the two probes assert only that a label is still there, because
+# what they actually measure — abandoned Plex transcoders, one `play url` per burst of
+# presses — is read off the server and out of the unified log by a person. Each is another
+# launch and another live Plex session, and a gate that can go red for the box's reasons is
+# a gate whose red means nothing.
+#
+# Here rather than in the scheme's `skippedTests`, because a scheme skip cannot be
+# overridden: measured, `-only-testing` against a skipped test runs zero tests and exits 0,
+# so `uiprobe` below and the by-name screenshot park would both have silently done nothing.
+PROBES  := -skip-testing:Tub3TVUITests/ParkTests \
+           -skip-testing:Tub3TVUITests/LiveSurfProbe \
+           -skip-testing:Tub3TVUITests/LiveSettleProbe
+
 uitest: gen               ## remote input, the strip, the guide — muted
 	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
 	  -destination '$(SIM_TV)' -derivedDataPath build build-for-testing >/dev/null
 	TEST_RUNNER_TUB3_BOX=$(BOX) xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
+	  -destination '$(SIM_TV)' -derivedDataPath build test-without-building $(PROBES) \
+	  | grep -E '^Test Case .*(passed|failed)'
+
+uiprobe: gen              ## the live probes: abandoned transcoders, one open per burst
+	xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
+	  -destination '$(SIM_TV)' -derivedDataPath build build-for-testing >/dev/null
+	TEST_RUNNER_TUB3_BOX=$(BOX) xcodebuild -project Tub3.xcodeproj -scheme $(SCHEME) \
 	  -destination '$(SIM_TV)' -derivedDataPath build test-without-building \
+	  -only-testing:Tub3TVUITests/LiveSurfProbe \
+	  -only-testing:Tub3TVUITests/LiveSettleProbe \
 	  | grep -E '^Test Case .*(passed|failed)'
 
 phone: gen                 ## build the iOS/iPadOS app
