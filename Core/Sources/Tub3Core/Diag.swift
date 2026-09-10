@@ -26,6 +26,16 @@ public enum Diag {
         unified.notice("TUB3 \(line, privacy: .public)")
     }
 
+    /// How long one step of a transition took.
+    ///
+    /// The gap at an ad break is four network waits and a buffer fill stacked end to end, and
+    /// a photograph of a black screen cannot say which of them it was. Milliseconds, because
+    /// that is the range the interesting ones live in.
+    public static func took(_ what: String, since start: Date) {
+        guard on else { return }
+        log("\(what) \(Int(Date().timeIntervalSince(start) * 1000))ms")
+    }
+
     /// Ask the network layer what it thinks of a URL that AVFoundation refused.
     ///
     /// AVFoundation reports a stream failure as one flat sentence. When the same URL plays

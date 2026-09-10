@@ -147,7 +147,9 @@ private func clients() async throws -> (BoxClient, PlexClient, URL) {
     await engine.attach(plex: plex)
 
     let fired = Fired()
-    await MainActor.run { engine.onBoundary = { fired.mark() } }
+    // `continued` is ignored here: with nothing queued behind it there is nothing for the
+    // queue to carry over, and what this probe is checking is that the cut fires at all.
+    await MainActor.run { engine.onBoundary = { _ in fired.mark() } }
     await engine.play(clipped)
 
     // Generous: the join and first frames take a couple of seconds before the six start.

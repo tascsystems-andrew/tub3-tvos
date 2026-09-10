@@ -75,6 +75,17 @@ public final class Tuner {
     static let dialRefresh: UInt64 = 60_000_000_000
     private var dialPoll: Task<Void, Never>?
     private var settleTask: Task<Void, Never>?
+    private var prefetchTask: Task<Void, Never>?
+    /// The entry sitting behind the one on screen, already agreed with Plex and buffering.
+    private var queued: (entry: NowEntry, item: PlayableItem, generation: Int)?
+    /// How long before an entry ends the next one is fetched and handed to the player.
+    ///
+    /// Long enough for the whole expensive half of a transition — Plex decision, transcoder
+    /// start, first segments — to be over before the cut, and short enough that the second
+    /// Plex session it implies exists for ten seconds rather than for a programme. Measured
+    /// on this dial, the part being hidden is 428–948ms of AVFoundation getting to
+    /// `readyToPlay`, on top of about 100ms of handshake.
+    static let prefetchLead: Double = 10
 
     private let box: BoxClient
     private var plex: PlexClient?
@@ -113,8 +124,8 @@ public final class Tuner {
         self.engine = engine
         self.clientID = clientID
         Self.forgetChannelIfAsked()
-        engine.onBoundary = { [weak self] in
-            Task { await self?.advance() }
+        engine.onBoundary = { [weak self] continued in
+            Task { await self?.advance(continued: continued) }
         }
         // A channel that cannot show a picture says so and tries again. The television it is
         // imitating cannot get stuck — it opens the next file off a disk — so the app has to
@@ -259,6 +270,11 @@ public final class Tuner {
         if case .guideChannel(let showing, _) = state, showing == channel { return }
         tuneGeneration += 1
         let generation = tuneGeneration
+        // Whatever was lined up behind the old channel is not wanted on the new one. The
+        // generation guard would drop it anyway; cancelling here is what stops a Plex
+        // session being started for a channel nobody is watching in the first place.
+        prefetchTask?.cancel()
+        queued = nil
         failures = 0
         avoidDirect = false
         current = channel
@@ -359,23 +375,118 @@ public final class Tuner {
 
     /// The item's slot is up. Ask what is on now rather than assuming it is `next`: the
     /// answer already accounts for however long the transition actually took.
-    private func advance() async {
+    /// - Parameter continued: whether the queued entry took over without the picture going
+    ///   away. When it did there is nothing to tune, and asking the box what is on would be
+    ///   the very thing this stopped doing.
+    private func advance(continued: Bool) async {
+        guard let channel = current else { return }
+        // During a tune the in-flight `load` already owns the next item, and on a slate the
+        // pending `retry` does. The box refuses this outright for the same reason.
+        guard case .playing(_, let station, _, _) = state else {
+            engine.standDown()
+            return
+        }
+
+        // The ordinary case now: the queue carried the picture over the cut and this is
+        // bookkeeping. Whose entry it is was decided ten seconds ago, from the box's own
+        // `next`, so nothing here consults the clock and nothing waits on the network.
+        if continued, let taken = queued, taken.generation == tuneGeneration {
+            queued = nil
+            Diag.log("boundary ch\(channel) — the queue carried it, now \(taken.entry.displayTitle)")
+            nowEntry = taken.entry
+            playingDirect = taken.item.session == nil
+            // `feature` is deliberately left where it is. It names the programme these
+            // adverts are interrupting and still does; only its countdown is a second or two
+            // stale, until the refresh below lands. Blanking it would make the bug say the
+            // advert's name for that moment, which is the one thing this app must not do.
+            state = .playing(channel: channel, station: station,
+                             title: Feature.caption(feature, playing: taken.entry),
+                             contentType: taken.entry.contentType)
+            UserDefaults.standard.set(channel, forKey: Self.lastWatchedKey)
+            await refreshAfterStep(channel: channel, generation: tuneGeneration)
+            return
+        }
+
+        // Nothing was queued — the end of a block, where the box has no `next` to give, or a
+        // prefetch that did not come back. The clock is the authority again, exactly as the
+        // box says: "If the file ended early, or the plan is exhausted, or the box was
+        // asleep, the right answer is still what should be airing right now."
+        //
         // The watchdog only knows the playhead has stopped; it cannot tell "this item
         // ended" from "this stream died". Leaving it armed across a boundary let the
         // outgoing item's clock count against the incoming one, and the box has no
         // stall detection at all — it would simply have kept playing.
         engine.standDown()
-        guard let channel = current else { return }
-        // During a tune the in-flight `load` already owns the next item, and on a slate the
-        // pending `retry` does. The box refuses this outright for the same reason.
-        guard case .playing = state else { return }
+        let began = Date()
+        Diag.log("boundary ch\(channel) — nothing queued, asking the box")
         tuneGeneration += 1
         await load(channel: channel, generation: tuneGeneration)
+        Diag.took("boundary to picture", since: began)
+    }
+
+    /// Ask the box what is on, now that the queue has moved us on, and line up the one after.
+    ///
+    /// The box does the same thing after its own step — `_advance_if_ended` re-reads the
+    /// clock "for display rather than synthesising an Airing, so the bug and the schedule can
+    /// never drift apart" — and the reason to copy it is the same: this app must not become a
+    /// second, disagreeing scheduler. It is also the only place the entry *after* the one now
+    /// playing can come from, because the payload carries `next` and not `next.next`.
+    ///
+    /// Off the critical path on purpose. The picture is already up; this is the caption and
+    /// the next prefetch catching up behind it.
+    private func refreshAfterStep(channel: Int, generation: Int) async {
+        guard let fresh = try? await box.now(channel: channel),
+              generation == tuneGeneration, let entry = fresh.now else { return }
+        lastNow = fresh
+        feature = fresh.feature
+        nowEntry = entry
+        if case .playing(let showing, let station, _, _) = state, showing == channel {
+            state = .playing(channel: channel, station: station,
+                             title: Feature.caption(fresh.feature, playing: entry),
+                             contentType: entry.contentType)
+        }
+        armNext(after: entry, following: fresh.next, generation: generation)
+    }
+
+    /// Fetch the entry that follows this one and hand it to the player, early.
+    ///
+    /// This is what stops an ad break looking like a fault. Before it, every boundary paid
+    /// for a box round trip, a Plex handshake and a buffer fill with the picture already
+    /// gone — 575ms, 966ms and 1296ms across three consecutive cuts in one measured pod —
+    /// and, worse, it asked the clock what was on *after* being late by exactly that amount,
+    /// so it joined each fresh advert one to two seconds in and skipped the top of it. That
+    /// is the fault the box names in `_advance_if_ended`: "re-querying at each boundary races
+    /// the very clock it is consulting". The box steps to its plan's next entry instead, and
+    /// so does this now — from offset zero, for the entry's whole length.
+    private func armNext(after entry: NowEntry, following next: NowEntry?, generation: Int) {
+        prefetchTask?.cancel()
+        queued = nil
+        guard let next, next.plex != nil, let resolver, let base = plexBase else { return }
+        let lead = max(0, entry.remainingSeconds - Self.prefetchLead)
+        prefetchTask = Task { [weak self] in
+            if lead > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(lead * 1_000_000_000))
+            }
+            guard let self, generation == self.tuneGeneration else { return }
+            guard let item = try? await resolver.resolve(next, base: base,
+                                                         forceTranscode: self.avoidDirect),
+                  generation == self.tuneGeneration else { return }
+            // Queued, or handed straight back. A transcoder started for a channel somebody
+            // has since left is exactly the leak `stopCurrentSession` exists to prevent, and
+            // starting one early is a new way to cause it.
+            if self.engine.queue(item) {
+                self.queued = (next, item, generation)
+            } else if let session = item.session {
+                await self.plex?.stop(session: session)
+            }
+        }
     }
 
     private func load(channel: Int, generation: Int, announce: Bool = false) async {
         do {
+            let asked = Date()
             let state = try await box.now(channel: channel)
+            Diag.took("  box.now", since: asked)
             guard generation == tuneGeneration else { return }
             await present(state, generation: generation, announce: announce)
         } catch {
@@ -448,8 +559,10 @@ public final class Tuner {
             return
         }
         do {
+            let asked = Date()
             let item = try await resolver.resolve(entry, base: base,
                                                   forceTranscode: avoidDirect)
+            Diag.took("  plex handshake", since: asked)
             guard generation == tuneGeneration else {
                 // Left this channel while Plex was thinking. Give the transcoder back.
                 if let session = item.session { await plex?.stop(session: session) }
@@ -475,6 +588,7 @@ public final class Tuner {
             feature = now.feature
             if await engine.play(item) {
                 failures = 0
+                armNext(after: entry, following: now.next, generation: generation)
                 // `engine.play` returns true only after the item became ready, which is
                 // this app's `playback-restart`. On a slow tune the old code had already
                 // spent the ident's four seconds before there was anything to identify.
