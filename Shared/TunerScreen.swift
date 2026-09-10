@@ -41,12 +41,12 @@ public struct TunerScreen: View {
     /// listings are the picture and a line saying what is on would be furniture on furniture.
     private var nowLine: String? {
         if case .guideChannel = tuner.state { return nil }
-        guard let channel = tuner.current, let entry = tuner.nowEntry else { return nil }
+        guard let channel = tuner.current, tuner.nowEntry != nil else { return nil }
         let station = tuner.channels.first { $0.channel == channel }?.station ?? ""
-        let bits = entry.displayTitle.components(separatedBy: " — ")
+        let bits = tuner.featureTitle.components(separatedBy: " — ")
         var parts = [String(format: "CH %02d", channel), station]
         parts += bits.filter { !$0.isEmpty }
-        let minutes = Int(entry.remainingSeconds / 60)
+        let minutes = Int(tuner.featureRemaining / 60)
         if minutes > 0 { parts.append("\(minutes) min left") }
         return parts.filter { !$0.isEmpty }.joined(separator: "   ·   ")
     }
@@ -181,7 +181,7 @@ public struct TunerScreen: View {
                 // Full frame: the bug places its own two blocks, top right and bottom right,
                 // because that separation is the whole design and not this screen's business.
                 ChannelBugView(channel: channel, station: station, title: title,
-                               remaining: tuner.nowEntry?.remainingSeconds ?? 0)
+                               remaining: tuner.featureRemaining)
                     .opacity(tuner.bugVisible ? 1 : 0)
             case .tuning(let channel, let station):
                 // The same ident, with nothing under it yet — the number is the whole point

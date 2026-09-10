@@ -15,6 +15,9 @@ DerivedData/
 # machine, and one had a LAN address compiled into a test binary.
 build/
 .build/
+# A device build needs its own derived-data path: `xcodebuild` for a real Apple TV
+# and for the simulator cannot share one without rebuilding the world each time.
+build-device/
 *.xcarchive
 *.o
 *.swiftmodule

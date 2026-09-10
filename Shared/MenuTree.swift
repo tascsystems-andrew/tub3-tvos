@@ -87,7 +87,7 @@ enum MenuTree {
         guard let channel = tuner.current,
               let station = tuner.channels.first(where: { $0.channel == channel })?.station
         else { return "Nothing yet" }
-        let title = tuner.nowEntry?.displayTitle ?? ""
+        let title = tuner.featureTitle
         let show = title.components(separatedBy: " — ").first ?? ""
         return show.isEmpty ? String(format: "CH %02d %@", channel, station)
                             : String(format: "CH %02d %@ — %@", channel, station, show)

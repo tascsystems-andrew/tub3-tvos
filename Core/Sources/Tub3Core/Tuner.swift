@@ -40,6 +40,22 @@ public final class Tuner {
     /// carry it, because "how much is left" changes every second and the state should
     /// not churn for something only the ident reads.
     public private(set) var nowEntry: NowEntry?
+    /// The programme the bug should name, which mid-break is not the entry being played.
+    /// Nil against an older box, or once a local step has made the last answer stale.
+    public private(set) var feature: Feature?
+
+    /// What is on, as a viewer would name it.
+    ///
+    /// The break case is the whole reason this exists: `nowEntry` is then the advert, and
+    /// every caption in the app — the bug, the menu's now-line — is supposed to keep saying
+    /// the programme the ads are interrupting. The box answers this; falling back to the
+    /// entry only covers a box too old to have been asked.
+    public var featureTitle: String { Feature.caption(feature, playing: nowEntry) }
+
+    /// How much of the programme is left, breaks included — so it does not jump upward
+    /// when the ads end. Falls back to the entry's own remainder.
+    public var featureRemaining: Double { Feature.remaining(feature, playing: nowEntry) }
+
     /// When this visit to the guide began.
     ///
     /// The crawl is measured from here, the way the box measures it from `Guide._started` —
@@ -303,6 +319,17 @@ public final class Tuner {
         }
     }
 
+    /// Let go of the Plex session, without forgetting what is tuned.
+    ///
+    /// For leaving the app. Plex does not reap a session whose client simply vanished —
+    /// `PlexClient` says so in its own comment — so an app that is killed while playing
+    /// leaves a transcoder running on the server until something else clears it. On a
+    /// television that is invisible; it shows up as the next thing to ask for a stream
+    /// waiting behind work nobody is watching.
+    public func release() async {
+        await engine.stopCurrentSession()
+    }
+
     /// What the box thinks of itself. The menu asks once per opening.
     public func boxHealth() async throws -> BoxHealth { try await box.health() }
 
@@ -368,6 +395,7 @@ public final class Tuner {
         music.stop()
         guard let entry = now.now, !now.isOffAir else {
             nowEntry = nil
+            feature = nil
             // The box never puts machine text on the picture. Whatever it said goes to the
             // trace; the viewer gets the same card a set shows for a channel with nothing on.
             if let why = now.error { Diag.log("ch\(now.channel) box says: \(why)") }
@@ -413,13 +441,23 @@ public final class Tuner {
                 return
             }
             Diag.log("play url=\(item.url.absoluteString) joinAt=\(item.joinAt) playFor=\(item.playFor) session=\(item.session ?? "direct")")
+            // The bug's name, not the file's: mid-break these differ, and the caption is
+            // the half a viewer sees.
+            let caption = Feature.caption(now.feature, playing: entry)
+            if now.feature?.inBreak == true {
+                // The one divergence worth a line in the trace: what is on the screen and
+                // what the bug says are deliberately different here, and a photo of the
+                // television cannot show which of the two went wrong.
+                Diag.log("ch\(now.channel) in break, playing \(entry.displayTitle) — bug says \(caption)")
+            }
             state = .playing(channel: now.channel, station: now.station,
-                             title: entry.displayTitle, contentType: entry.contentType)
+                             title: caption, contentType: entry.contentType)
             // On a picture arriving, not on a button moving. Surfing through eight channels
             // should not make the eighth the one it opens on tomorrow.
             UserDefaults.standard.set(now.channel, forKey: Self.lastWatchedKey)
             playingDirect = item.session == nil
             nowEntry = entry
+            feature = now.feature
             if await engine.play(item) {
                 failures = 0
                 // `engine.play` returns true only after the item became ready, which is
@@ -461,6 +499,9 @@ public final class Tuner {
         state = .playing(channel: channel, station: station,
                          title: next.displayTitle, contentType: next.contentType)
         nowEntry = next
+        // The box's answer described the entry we just stepped over. Nothing here knows what
+        // the programme is any more, and a stale name outlives the advert it was taken from.
+        feature = nil
         playingDirect = item.session == nil
         return await engine.play(item)
     }

@@ -110,6 +110,80 @@ public struct MapState: Codable, Equatable, Sendable {
     }
 }
 
+/// What is *actually* on, when what is playing is an advert.
+///
+/// The plan's current entry is the right answer for playback and the wrong one for the bug.
+/// A viewer three minutes into a break is still watching Grand Designs; a caption reading
+/// "60+_MINUTES_OF_VINTAGE_YOUTUBE_ADS" is the app narrating its own plumbing at the one
+/// moment the illusion is easiest to break. The box has always resolved this for the
+/// television's own bug — `_feature_slot` in `tuner/schedule.py` — and this is that same
+/// answer over HTTP.
+///
+/// Absent from an older box, which is why every consumer still falls back to `now`.
+public struct Feature: Codable, Equatable, Sendable {
+    public let show: String?
+    public let episode: String?
+    /// The *programme's* type, not the advert's: `feature`, `bump`, and so on.
+    public let contentType: String?
+    /// The programme's own time left, counting the breaks still to come inside it — so the
+    /// number does not jump upward when the ads end and the second half starts.
+    public let remainingSeconds: Double
+    /// Whether the plan's current entry is a break. False means this simply restates `now`.
+    public let inBreak: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case show, episode
+        case contentType = "content_type"
+        case remainingSeconds = "remaining_seconds"
+        case inBreak = "in_break"
+    }
+
+    public init(show: String?, episode: String?, contentType: String?,
+                remainingSeconds: Double, inBreak: Bool) {
+        self.show = show
+        self.episode = episode
+        self.contentType = contentType
+        self.remainingSeconds = remainingSeconds
+        self.inBreak = inBreak
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        show = try c.decodeIfPresent(String.self, forKey: .show)
+        episode = try c.decodeIfPresent(String.self, forKey: .episode)
+        contentType = try c.decodeIfPresent(String.self, forKey: .contentType)
+        remainingSeconds = try c.decodeIfPresent(Double.self, forKey: .remainingSeconds) ?? 0
+        inBreak = try c.decodeIfPresent(Bool.self, forKey: .inBreak) ?? false
+    }
+
+    /// Joined the way `ChannelBugView` splits it. Empty when the box could not name the
+    /// programme, which is the caller's cue to fall back rather than draw a blank line.
+    public var displayTitle: String {
+        guard let show, !show.isEmpty else { return "" }
+        if let episode, !episode.isEmpty { return "\(show) — \(episode)" }
+        return show
+    }
+
+    /// What a caption should say, given the box's answer and the entry actually playing.
+    ///
+    /// Static because the absence of a `Feature` is half of what it decides: an older box
+    /// sends none, and a local step past a broken file makes the last one stale. Both fall
+    /// back to the entry, which is what the app did everywhere before the box learned to
+    /// answer this.
+    public static func caption(_ feature: Feature?, playing entry: NowEntry?) -> String {
+        let named = feature?.displayTitle ?? ""
+        return named.isEmpty ? (entry?.displayTitle ?? "") : named
+    }
+
+    /// How much of the programme is left. Only a break makes these differ — outside one the
+    /// entry *is* the programme, and its own remainder is the more current of the two,
+    /// because the app re-reads it at every boundary.
+    public static func remaining(_ feature: Feature?, playing entry: NowEntry?) -> Double {
+        if let feature, feature.inBreak { return feature.remainingSeconds }
+        return entry?.remainingSeconds ?? 0
+    }
+}
+
 /// The whole answer to "what is on channel N".
 public struct NowPlaying: Codable, Equatable, Sendable {
     public let channel: Int
@@ -119,13 +193,15 @@ public struct NowPlaying: Codable, Equatable, Sendable {
     public let blockEndsAt: Double?
     public let now: NowEntry?
     public let next: NowEntry?
+    /// What the bug should name, which is not always what is on the screen.
+    public let feature: Feature?
     public let map: MapState?
     public let offAir: Bool?
     public let kind: String?
     public let error: String?
 
     enum CodingKeys: String, CodingKey {
-        case channel, station, now, next, map, kind, error
+        case channel, station, now, next, feature, map, kind, error
         case serverTime = "server_time"
         case blockTitle = "block_title"
         case blockEndsAt = "block_ends_at"
@@ -149,6 +225,7 @@ public struct NowPlaying: Codable, Equatable, Sendable {
         blockEndsAt = try c.decodeIfPresent(Double.self, forKey: .blockEndsAt)
         now = try c.decodeIfPresent(NowEntry.self, forKey: .now)
         next = try c.decodeIfPresent(NowEntry.self, forKey: .next)
+        feature = try c.decodeIfPresent(Feature.self, forKey: .feature)
         map = try c.decodeIfPresent(MapState.self, forKey: .map)
         offAir = try c.decodeIfPresent(Bool.self, forKey: .offAir)
         kind = try c.decodeIfPresent(String.self, forKey: .kind)
