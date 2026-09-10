@@ -17,6 +17,8 @@ struct RootView: View {
         return RootView.build(url)
     }()
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         Group {
             if let tuner {
@@ -31,6 +33,18 @@ struct RootView: View {
                 }
             }
         }
+        .onChange(of: scenePhase) { _, phase in phaseChanged(phase) }
+    }
+
+    /// Leaving the app releases the Plex session.
+    ///
+    /// Menu from the top level backgrounds this app, and tvOS may kill it outright afterwards
+    /// — at which point nothing gets a chance to tidy up. Plex does not reap a session whose
+    /// client vanished, so without this every exit mid-programme leaves a transcoder running
+    /// on the server for somebody else's stream to queue behind.
+    private func phaseChanged(_ phase: ScenePhase) {
+        guard phase != .active, let tuner else { return }
+        Task { await tuner.release() }
     }
 
     private func changeBox() {

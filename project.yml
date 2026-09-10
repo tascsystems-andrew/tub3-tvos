@@ -99,6 +99,9 @@ schemes:
     test:
       config: Debug
       targets: [Tub3TVUITests]
+      # Parks are photography aids: they hold a screen still and assert almost nothing, and
+      # each one is another launch and another abandoned Plex session against the real box.
+      skippedTests: [Tub3TVUITests/ParkTests]
     # Archive must be Release, or automatic signing reaches for a *development* profile —
     # which needs a registered device and is the wrong kind of profile for TestFlight.
     archive:

@@ -22,8 +22,7 @@ final class SetupTests: XCTestCase {
         // select presses whatever holds it.
         XCUIRemote.shared.press(.select)
 
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40),
-                      "chose a box and never tuned")
+        Harness.tuned(app)
     }
 
     /// The setup screen has to *stop* offering itself once a box is chosen — a picker that
@@ -34,15 +33,14 @@ final class SetupTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["tub3.setup.box"].firstMatch.waitForExistence(timeout: 30))
         XCUIRemote.shared.press(.select)
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
         app.terminate()
 
         // Same app, no flags: it should go straight to a picture.
         let again = XCUIApplication()
         again.launchArguments += ["-tub3Mute"]
         again.launch()
-        XCTAssertTrue(again.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40),
-                      "the box it was told about was not remembered")
+        Harness.tuned(again)
         XCTAssertFalse(again.buttons["tub3.setup.box"].firstMatch.exists,
                        "asked again for a box it had already been given")
     }

@@ -51,6 +51,20 @@ public struct TunerScreen: View {
         return parts.filter { !$0.isEmpty }.joined(separator: "   ·   ")
     }
 
+    /// Nothing more is about to change shape.
+    ///
+    /// `tub3.channel.tuned` goes non-empty when a tune *begins* — the same turn the state
+    /// becomes `.tuning`, before the settle window and before Plex has been asked anything.
+    /// It says a channel number exists, not that a picture is up, and the difference is the
+    /// window in which the tree is rebuilt under whatever holds focus. The 4-second sleeps in
+    /// the tests were guessing at this.
+    private var settled: Bool {
+        switch tuner.state {
+        case .idle, .tuning: false
+        default: true
+        }
+    }
+
     private func rebuildMenu() {
         let wasOpen = menu.isOpen
         menu = MenuModel(root: {
@@ -103,7 +117,16 @@ public struct TunerScreen: View {
             // Button is not a focus candidate, so an overlay's own rows take focus while one
             // is up — and the view keeps its identity throughout, so there is no gap to
             // recover from.
-            Button { withAnimation { overlay = .menu } } label: { Color.clear }
+            // Populate it BEFORE inserting it, not after. `rebuildMenu()` used to run from
+            // `.onChange(of: overlay)`, one update later — so MenuOverlay first appeared bound
+            // to the empty placeholder above, its ForEach produced no rows at all, and for
+            // that update the whole app had zero focus candidates: this Button had just been
+            // disabled and the rows did not exist yet. Focus went nowhere, and the
+            // `@FocusState` write arriving with the rows a frame later raced their
+            // registration and was dropped. The dial never had this problem because its cards
+            // exist on the frame it is inserted — which is what proves the transition and the
+            // alpha are innocent.
+            Button { rebuildMenu(); withAnimation { overlay = .menu } } label: { Color.clear }
                 .buttonStyle(.plain)
                 .disabled(overlay != .none)
                 .prefersDefaultFocus(in: focusScope)
@@ -146,6 +169,11 @@ public struct TunerScreen: View {
                 .frame(width: 1, height: 1)
                 .opacity(0.02)
 
+            Text(settled ? "ready" : "")
+                .accessibilityIdentifier("tub3.settled")
+                .frame(width: 1, height: 1)
+                .opacity(0.02)
+
             // The bug's own identifier stays on the bug, because what it is for is asserting
             // that the ident was *drawn* — which is a different question from what is tuned.
             switch tuner.state {
@@ -172,7 +200,7 @@ public struct TunerScreen: View {
             if overlay == .dial {
                 DialOverlay(channels: tuner.channels, current: tuner.current,
                             onClose: { withAnimation { overlay = .none } },
-                            onSetup: { withAnimation { overlay = .menu } }) { picked in
+                            onSetup: { rebuildMenu(); withAnimation { overlay = .menu } }) { picked in
                     overlay = .none
                     Task { await tuner.tune(to: picked) }
                 }
@@ -194,7 +222,6 @@ public struct TunerScreen: View {
         .onChange(of: overlay) { _, now in
             if now == .none { resetFocus(in: focusScope) }
             guard now == .menu else { return }
-            rebuildMenu()
             // Asked once per opening, on a six-second session of its own. A stale verdict on
             // a screen somebody opened *because* they are worried is worse than "checking…".
             Task {

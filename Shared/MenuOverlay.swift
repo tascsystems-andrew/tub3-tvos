@@ -105,6 +105,11 @@ struct MenuOverlay: View {
         .padding(.top, 34)
         // tvOS glides focus; this cursor snaps, the way a character generator did.
         .animation(nil, value: focused)
+        // Declared, not merely assigned. `.onAppear`/`.onChange` write `@FocusState` once and
+        // the write is dropped if the row's view is not registered with the focus system yet;
+        // this is consulted by the engine when it resolves focus for the scope, which is the
+        // moment that actually matters.
+        .defaultFocus($focused, menu.cursor)
     }
 
     private func row(_ item: MenuItem, selected: Bool) -> some View {

@@ -20,4 +20,37 @@ enum Harness {
 
     /// Mute, plus the box. The suite's usual opening line.
     static var quiet: [String] { ["-tub3Mute"] + box }
+
+    /// The app has actually tuned, not merely drawn a placeholder.
+    ///
+    /// `tub3.channel.tuned` is unconditional in the view tree and its label is empty until
+    /// the first tune, so `waitForExistence` alone returns the instant the screen appears and
+    /// says nothing. Only `DialTests` checked the label, and it was right to.
+    @discardableResult
+    static func tuned(_ app: XCUIApplication, timeout: TimeInterval = 40,
+                      file: StaticString = #filePath, line: UInt = #line) -> String {
+        label(app.staticTexts["tub3.channel.tuned"], timeout: timeout,
+              what: "never tuned", file: file, line: line)
+    }
+
+    /// The tuner has reached a state it will sit in — past the .idle to .tuning to .playing
+    /// walk that rebuilds the tree next to the screen's only focusable view. Replaces the
+    /// guessed four-second sleeps.
+    @discardableResult
+    static func settled(_ app: XCUIApplication, timeout: TimeInterval = 45,
+                        file: StaticString = #filePath, line: UInt = #line) -> String {
+        label(app.staticTexts["tub3.settled"], timeout: timeout,
+              what: "never settled", file: file, line: line)
+    }
+
+    private static func label(_ element: XCUIElement, timeout: TimeInterval, what: String,
+                              file: StaticString, line: UInt) -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if element.exists, !element.label.isEmpty { return element.label }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        XCTFail("\(what) within \(timeout)s", file: file, line: line)
+        return ""
+    }
 }

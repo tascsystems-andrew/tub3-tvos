@@ -12,6 +12,10 @@ final class DialTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
+        // Past the walk from .idle through .tuning, which rebuilds the tree next to the only
+        // focusable view on screen. Pressing inside that window loses the press, which is
+        // what these tests were intermittently doing.
+        Harness.settled(app)
         return app
     }
 

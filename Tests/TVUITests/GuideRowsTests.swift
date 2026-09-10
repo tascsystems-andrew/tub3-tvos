@@ -9,7 +9,7 @@ final class GuideRowsTests: XCTestCase {
         app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
         XCUIRemote.shared.press(.down)                       // ch3 -> ch2, the guide,
                                                              // which -tub3Channel pinned
         XCTAssertTrue(app.otherElements["tub3.guide"].waitForExistence(timeout: 25))

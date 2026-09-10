@@ -13,8 +13,7 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40),
-                      "never tuned, so this proves nothing either way")
+        Harness.tuned(app)
 
         // The app's OWN state is not the signal. XCUITest on tvOS keeps reporting
         // `.runningForeground` for the app under test after the system has backgrounded it,
@@ -45,14 +44,14 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
 
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 10),
                       "select did not open the menu")
         // It opens on the way out, so the button that opened it closes it.
         XCUIRemote.shared.press(.select)
-        XCTAssertFalse(app.otherElements["tub3.menu"].waitForExistence(timeout: 3),
+        XCTAssertTrue(app.otherElements["tub3.menu"].waitForNonExistence(timeout: 5),
                        "a second select should have closed it again")
     }
 
@@ -61,13 +60,13 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 10))
 
         let home = XCUIApplication(bundleIdentifier: "com.apple.HeadBoard")
         XCUIRemote.shared.press(.menu)
-        XCTAssertFalse(app.otherElements["tub3.menu"].waitForExistence(timeout: 3),
+        XCTAssertTrue(app.otherElements["tub3.menu"].waitForNonExistence(timeout: 5),
                        "back did not close the menu")
         XCTAssertNotEqual(home.state, .runningForeground,
                           "back left the app instead of closing the menu")
@@ -99,15 +98,15 @@ final class MenuTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
-        Thread.sleep(forTimeInterval: 4)
+        Harness.tuned(app)
+        Harness.settled(app)
 
         for attempt in 1 ... 3 {
             XCUIRemote.shared.press(.select)
             XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 8),
                           "the menu did not open on attempt \(attempt)")
             XCUIRemote.shared.press(.menu)
-            XCTAssertFalse(app.otherElements["tub3.menu"].waitForExistence(timeout: 3),
+            XCTAssertTrue(app.otherElements["tub3.menu"].waitForNonExistence(timeout: 5),
                            "the menu did not close on attempt \(attempt)")
             Thread.sleep(forTimeInterval: 1)
         }

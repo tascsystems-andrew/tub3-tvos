@@ -7,7 +7,7 @@ final class ParkTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet + ["-tub3Channel", "3"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
         XCUIRemote.shared.press(.down)          // ch3 -> ch2, the guide. Pinned to 3
                                                 // because the app opens on ambiance, 13.
         Thread.sleep(forTimeInterval: 45)
@@ -18,11 +18,11 @@ final class ParkTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += Harness.quiet
         app.launch()
-        XCTAssertTrue(app.staticTexts["tub3.channel.tuned"].waitForExistence(timeout: 40))
+        Harness.tuned(app)
         // `tub3.channel.tuned` appears while the state is still `.tuning`; the switch to
         // `.playing` rebuilds the content and can take focus off the invisible SELECT button
         // for a frame. Let the picture settle before pressing, or the press lands in that gap.
-        Thread.sleep(forTimeInterval: 4)
+        Harness.settled(app)
         XCUIRemote.shared.press(.select)
         XCTAssertTrue(app.otherElements["tub3.menu"].waitForExistence(timeout: 10))
         XCUIRemote.shared.press(.down)          // off the exit row, onto Signal
